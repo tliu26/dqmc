@@ -2,6 +2,7 @@
 
 #include <stdint.h>
 #include "util.h"
+#include "data.h"
 
 void update_delayed(const int N, const int n_delay, const double *const restrict del,
 		const int *const restrict site_order,
@@ -10,6 +11,42 @@ void update_delayed(const int N, const int n_delay, const double *const restrict
 		// work arrays (sizes: N*N, N*N, N)
 		num *const restrict au, num *const restrict bu, num *const restrict du,
 		num *const restrict ad, num *const restrict bd, num *const restrict dd);
+
+void update_localX(const int N, const int *const restrict site_order, 
+        const int nd, const int num_munu, const int l, const int L,
+        const double dt, const double inv_dt_sq, uint64_t *const restrict rng,
+		double *const restrict X,
+		const int *const restrict map_i, const int *const restrict map_munu,
+		const double *const restrict D, const int max_D_nums_nonzero,
+		const int *const restrict D_nums_nonzero,
+		const int *const restrict D_nonzero_inds,
+		const double *const restrict local_box_widths,
+		const int num_local_updates,
+		const double *const restrict masses,
+		struct meas_ph *const restrict m);
+
+void update_blockX(const int N, const int *const restrict site_order,
+        const int nd, const int num_munu, const int L,
+		const double dt, uint64_t *const restrict rng,
+		double *const restrict X,
+		const int *const restrict map_i, const int *const restrict map_munu,
+		const double *const restrict D, const int max_D_nums_nonzero,
+		const int *const restrict D_nums_nonzero,
+		const int *const restrict D_nonzero_inds,
+		const double *const restrict block_box_widths,
+		const int num_block_updates,
+		struct meas_ph *const restrict m);
+
+void update_flipX(const int N, const int *const restrict site_order,
+        const int nd, const int num_munu, const int L,
+		const double dt, uint64_t *const restrict rng,
+		double *const restrict X,
+		const int *const restrict map_i, const int *const restrict map_munu,
+		const double *const restrict D, const int max_D_nums_nonzero,
+		const int *const restrict D_nums_nonzero,
+		const int *const restrict D_nonzero_inds,
+		const int num_flip_updates,
+		struct meas_ph *const restrict m);
 
 /*
 // regular sherman morrison

@@ -3,6 +3,7 @@
 #include "linalg.h"
 #include "rand.h"
 #include "util.h"
+#include <stdio.h>
 
 void update_delayed(const int N, const int n_delay, const double *const restrict del,
 		const int *const restrict site_order,
@@ -82,6 +83,226 @@ void update_delayed(const int N, const int n_delay, const double *const restrict
 	xgemm("N", "T", N, N, k, 1.0, ad, N, bd, N, 1.0, gd, N);
 	}
 }
+
+void update_localX(const int N, const int *const restrict site_order, 
+        const int nd, const int num_munu, const int l, const int L,
+        const double dt, const double inv_dt_sq, uint64_t *const restrict rng,
+		double *const restrict X,
+		const int *const restrict map_i, const int *const restrict map_munu,
+		const double *const restrict D, const int max_D_nums_nonzero,
+		const int *const restrict D_nums_nonzero,
+		const int *const restrict D_nonzero_inds,
+		const double *const restrict local_box_widths,
+		const int num_local_updates,
+		const double *const restrict masses,
+		struct meas_ph *const restrict m)
+{
+    double *dX = my_calloc(nd * sizeof(double));
+	for (int ii = 0; ii < num_local_updates; ii++) {
+		// printf("updates.c ln102, ii = %d\n", ii);
+		const int i = site_order[ii];
+		const int l_next = (l + 1) % L;
+		const int l_prev = (l + L - 1) % L;
+		double dEph = 0;
+		const double pre = masses[map_i[i]] * inv_dt_sq;
+		// printf("updates.c ln108, i = %d\n", i);
+		for (int mu = 0; mu < nd; mu++) {
+			const double dXmu = (rand_doub(rng) - 0.5) * local_box_widths[map_i[i]];
+			dX[mu] = dXmu;
+			dEph += dXmu * pre * (dXmu + 2*X[i + (mu + l*nd) * N]
+			                             - X[i + (mu + l_next*nd) * N]
+										 - X[i + (mu + l_prev*nd) * N]);
+			// if (l == 0 && i ==1) {
+			// 	printf("dXmu = %.12f\n", dXmu);
+			// 	printf("pre = %.12f\n", pre);
+			// 	printf("l_next = %d\n", l_next);
+			// 	printf("l_prev = %d\n", l_prev);
+			// 	printf("t-1 = %.12f\n", (dXmu + 2*X[i + (mu + l*nd) * N]
+			//                              - X[i + (mu + l_next*nd) * N]
+			// 							 - X[i + (mu + l_prev*nd) * N]));
+			// 	printf("dEph = %.12f\n", dEph);
+			// 	}
+			for (int nu = 0; nu < nd; nu++) {
+				const int munu = map_munu[nu + mu*nd];
+				for (int jj = 0; jj < D_nums_nonzero[munu + i*num_munu]; jj++) {
+					const int j = D_nonzero_inds[jj + (munu + i*num_munu) * max_D_nums_nonzero];
+					dEph += dXmu * D[j + (i + munu*N) * N]
+					             * (2 * X[j + (nu + l*nd) * N] + (mu == nu && i == j) * dXmu);
+					// if (mu == nu && i == j) {
+					// 	dEph += dXmu * D[j + (i + munu*N) * N] * (2 * X[j + (nu + l*nd) * N] + dXmu);
+					// } else {
+					// 	dEph += dXmu * D[j + (i + munu*N) * N] * X[j + (nu + l*nd) * N];
+					// }
+					// dEph += dXmu * D[j + (i + munu*N) * N] * X[j + (nu + l*nd) * N];
+					// // if (l == 0 && i ==1) printf("dEph = %.12f\n", dEph);
+					// if (mu == nu && i == j) {dEph += 0.5 * D[j + (i + munu*N) * N] * dXmu * dXmu;}
+					// // if (l == 0 && i ==1) printf("dEph = %.12f\n", dEph);
+				}
+			}
+		}
+		m->n_local_total[map_i[i]]++;
+		if (rand_doub(rng) < exp(-dt * dEph)) {
+			m->n_local_accept[map_i[i]]++;
+			for (int mu = 0; mu < nd; mu++) {X[i + (mu + l*nd) * N] += dX[mu];}
+			// if (l == 0) {
+				// printf("i = %d\n", i);
+				// printf("dXmu = %.12f\n", dX[0]);
+				// printf("dEph = %.12f\n", dEph);
+			// }
+		}
+	}
+	my_free(dX);
+}
+
+void update_blockX(const int N, const int *const restrict site_order,
+        const int nd, const int num_munu, const int L, 
+		const double dt, uint64_t *const restrict rng,
+		double *const restrict X,
+		const int *const restrict map_i, const int *const restrict map_munu,
+		const double *const restrict D, const int max_D_nums_nonzero,
+		const int *const restrict D_nums_nonzero,
+		const int *const restrict D_nonzero_inds,
+		const double *const restrict block_box_widths,
+		const int num_block_updates,
+		struct meas_ph *const restrict m)
+{
+	double *dX = my_calloc(nd * sizeof(double));
+	for (int ii = 0; ii < num_block_updates; ii++) {
+		const int i = site_order[ii];
+		double dEph = 0;
+		for (int mu = 0; mu < nd; mu++) {
+			const double dXmu = (rand_doub(rng) - 0.5) * block_box_widths[map_i[i]];
+			dX[mu] = dXmu;
+			for (int nu = 0; nu < nd; nu++) {
+				const int munu = map_munu[nu + mu*nd];
+				for (int jj = 0; jj < D_nums_nonzero[munu + i*num_munu]; jj++) {
+					const int j = D_nonzero_inds[jj + (munu + i*num_munu) * max_D_nums_nonzero];
+					for (int l = 0; l < L; l++) {
+						dEph += dXmu * D[j + (i + munu*N) * N]
+						             * (2 * X[j + (nu + l*nd) * N] + (mu == nu && i == j) * dXmu);
+						// if (mu == nu && i == j) {
+						// 	dEph += dXmu * D[j + (i + munu*N) * N] * (2 * X[j + (nu + l*nd) * N] + dXmu);
+						// } else {
+						// 	dEph += dXmu * D[j + (i + munu*N) * N] * X[j + (nu + l*nd) * N];
+						// }
+						// dEph += dXmu * D[j + (i + munu*N) * N] * X[j + (nu + l*nd) * N];
+						// if (mu == nu && i == j) {dEph += 0.5 * D[j + (i + munu*N) * N] * dXmu * dXmu;}
+					}
+				}
+			}
+		}
+		m->n_block_total[map_i[i]]++;
+		if (rand_doub(rng) < exp(-dt * dEph)) {
+			m->n_block_accept[map_i[i]]++;
+			for (int mu = 0; mu < nd; mu++) {
+				for (int l = 0; l < L; l++) {
+					X[i + (mu + l*nd) * N] += dX[mu];
+				}
+			}
+			// printf("i = %d\n", i);
+			// printf("dXmu = %.12f\n", dX[0]);
+			// printf("dEph = %.12f\n", dEph);
+		}
+	}
+	my_free(dX);
+}
+
+void update_flipX(const int N, const int *const restrict site_order,
+        const int nd, const int num_munu, const int L,
+		const double dt, uint64_t *const restrict rng,
+		double *const restrict X,
+		const int *const restrict map_i, const int *const restrict map_munu,
+		const double *const restrict D, const int max_D_nums_nonzero,
+		const int *const restrict D_nums_nonzero,
+		const int *const restrict D_nonzero_inds,
+		const int num_flip_updates,
+		struct meas_ph *const restrict m)
+{
+	for (int ii = 0; ii < num_flip_updates; ii++) {
+		const int i = site_order[ii];
+		double dEph = 0;
+		for (int l = 0; l < L; l++) {
+			for (int mu = 0; mu < nd; mu++) {
+				const double dXmul = -2 * X[i + (mu + l*nd) * N];
+				for (int nu = 0; nu < nd; nu++) {
+					const int munu = map_munu[nu + mu*nd];
+					for (int jj = 0; jj < D_nums_nonzero[munu + i*num_munu]; jj++) {
+						const int j = D_nonzero_inds[jj + (munu + i*num_munu) * max_D_nums_nonzero];
+						dEph += dXmul * D[j + (i + munu*N) * N]
+						              * (2 * X[j + (nu + l*nd) * N] + (mu == nu && i == j) * dXmul);
+						// if (mu == nu && i == j) {
+						// 	dEph += dXmul * D[j + (i + munu*N) * N] * (2 * X[j + (nu + l*nd) * N] + dXmul);
+						// } else {
+						// 	dEph += dXmul * D[j + (i + munu*N) * N] * X[j + (nu + l*nd) * N];
+						// }
+						// dEph += dXmul * D[j + (i + munu*N) * N] * X[j + (nu + l*nd) * N];
+						// if (mu == nu && i == j) {dEph += 0.5 * D[j + (i + munu*N) * N] * dXmul * dXmul;}
+					}
+				}
+			}
+		}
+		m->n_flip_total[map_i[i]]++;
+		if (rand_doub(rng) < exp(-dt * dEph)) {
+			m->n_flip_accept[map_i[i]]++;
+			for (int l = 0; l < L; l++) {
+				for (int mu = 0; mu < nd; mu++) {
+					X[i + (mu + l*nd) * N] = -X[i + (mu + l*nd) * N];
+				}
+			}
+			// printf("i = %d\n", i);
+			// printf("dEph = %.12f\n", dEph);
+		}
+	}
+}
+
+// void update_localX(const int N, const int *const restrict site_order, const int l,
+//         const double dt, const double inv_dt_sq, uint64_t *const restrict rng,
+// 		double *const restrict X,
+// 		double *const restrict exp_X, double *const restrict inv_exp_X,
+// 		const double omega, const double omega_sq,
+// 		const double local_box_width, const int num_local_updates,
+// 		const double *const restrict gmat,
+// 		const int max_num_coupledX,
+// 		const int *const restrict num_coupledX,
+// 		const int *const restrict coupledX_ind,
+// 		num *const restrict gu, num *const restrict gd, num *const restrict phase,
+// 		num *const restrict ggpu, num *const restrict cu, num *const restrict du,
+// 		num *const restrict ggpd, num *const restrict cd, num *const restrict dd,
+// 		int *const restrict pvtu, int *const restrict pvtd)
+// {
+// 	for (int ii = 0; ii < num_local_updates; ii++) {
+// 		const int i = site_order[ii];
+// 		const double dx = (rand_doub(rng) - 0.5) * local_box_width;
+// 		const int n = num_coupledX[i];
+// 		const int *const restrict X_inds = coupledX_ind + i * max_num_coupledX;
+// 		const double *const restrict gm = gmat + i * N;
+// 		for (int jj = 0; jj < n; jj++) {
+// 			int j = X_inds[jj];
+// 			for (int kk = 0; kk < n; kk++) {
+// 				int k = X_inds[kk];
+// 				int jk = j + k*N;
+// 				if (j == k) {
+// 					ggpu[jk] = 1 + (1 - gu[jk]) * expm1(-dt * gm[k] * dx);
+// 					ggpd[jk] = 1 + (1 - gd[jk]) * expm1(-dt * gm[k] * dx);
+// 				}
+// 				else {
+// 					ggpu[jk] = -gu[jk] * expm1(-dt * gm[k] * dx);
+// 					ggpd[jk] = -gd[jk] * expm1(-dt * gm[k] * dx);
+// 				}
+// 			}
+// 		}
+// 		int infou, infod = 0;
+// 		double ru, rd = 1;
+// 		xgetrf(n, n, ggpu, N, pvtu, &infou);
+// 		for (int j = 0; j < n; j++) {
+// 			ru *= ggpu[j + j * n] * (pvtu[j] == (j + 1) ? 1 : -1);
+// 		}
+// 		xgetrf(n, n, ggpd, N, pvtd, &infod);
+// 		for (int j = 0; j < n; j++) {
+// 			rd *= ggpd[j + j * n] * (pvtd[j] == (j + 1) ? 1 : -1);
+// 		}
+// 	}
+// }
 
 /*
 void update_shermor(const int N, const double *const restrict del,

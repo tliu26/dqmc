@@ -11,6 +11,8 @@
 #include "time_.h"
 #include "updates.h"
 #include "util.h"
+#include <stdarg.h>
+#include <stdbool.h>
 
 #define N_MUL 2 // input parameter to calc_eq_g() and calc_ue_g()
 
@@ -36,9 +38,25 @@
 	} \
 } while (0);
 
+#define calcPhononBu(B, l) do { \
+	for (int j = 0; j < N; j++) { \
+		const double el = exp_lambda[j + N*hs[j + N*(l)]] * exp_X[j + N*(l)]; \
+		for (int i = 0; i < N; i++) \
+			(B)[i + N*j] = exp_Ku[i + N*j] * el; \
+	} \
+} while (0);
+
 #define calcBd(B, l) do { \
 	for (int j = 0; j < N; j++) { \
 		const double el = exp_lambda[j + N*!hs[j + N*(l)]]; \
+		for (int i = 0; i < N; i++) \
+			(B)[i + N*j] = exp_Kd[i + N*j] * el; \
+	} \
+} while (0);
+
+#define calcPhononBd(B, l) do { \
+	for (int j = 0; j < N; j++) { \
+		const double el = exp_lambda[j + N*!hs[j + N*(l)]] * exp_X[j + N*(l)]; \
 		for (int i = 0; i < N; i++) \
 			(B)[i + N*j] = exp_Kd[i + N*j] * el; \
 	} \
@@ -52,9 +70,25 @@
 	} \
 } while (0);
 
+#define calcPhononiBu(iB, l) do { \
+	for (int i = 0; i < N; i++) { \
+		const double el = exp_lambda[i + N*!hs[i + N*(l)]] * inv_exp_X[i + N*(l)]; \
+		for (int j = 0; j < N; j++) \
+			(iB)[i + N*j] = el * inv_exp_Ku[i + N*j]; \
+	} \
+} while (0);
+
 #define calciBd(iB, l) do { \
 	for (int i = 0; i < N; i++) { \
 		const double el = exp_lambda[i + N*hs[i + N*(l)]]; \
+		for (int j = 0; j < N; j++) \
+			(iB)[i + N*j] = el * inv_exp_Kd[i + N*j]; \
+	} \
+} while (0);
+
+#define calcPhononiBd(iB, l) do { \
+	for (int i = 0; i < N; i++) { \
+		const double el = exp_lambda[i + N*hs[i + N*(l)]] * inv_exp_X[i + N*(l)]; \
 		for (int j = 0; j < N; j++) \
 			(iB)[i + N*j] = el * inv_exp_Kd[i + N*j]; \
 	} \
@@ -71,6 +105,96 @@
 	avg /= N*N; \
 	printf(#A " - " #B ":\tmax %.3e\tavg %.3e\n", max, avg); \
 } while (0);
+
+void print_mat_f_dd(const double *const restrict mat, const char *mat_name, 
+        int nd, const int *const ds, const int stride, 
+		const int num_space)
+{
+	if (mat_name != NULL) {printf("%s = np.array(\n", mat_name);}
+	printf("[");
+	if (nd == 1) {
+		int m = ds[0];
+		for (int i = 0; i < m; i++) {
+			printf("%.12f", mat[i*stride]);
+			if (i < m-1) {printf(", ");}
+		}
+	} else {
+		int nds[nd-1];
+		for (int i = 0; i < nd-1; i++) {nds[i] = ds[i+1];}
+		for (int i = 0; i < ds[0]; i++) {
+			print_mat_f_dd(mat+i*stride, NULL, nd-1, nds, stride*ds[0],
+			            num_space+1);
+			if (i < ds[0]-1) {printf(",\n%*s", num_space, "");}
+		}
+	}
+	printf("]");
+	if (mat_name != NULL) {printf("\n)\n");}
+}
+
+void print_mat_f(const double *const restrict mat, const char *mat_name,
+        int nd, ...)
+{
+	va_list valist;
+	va_start(valist, nd);
+	int ds[nd];
+	for (int i = 0; i < nd; i++) {ds[i] = va_arg(valist, int);}
+	print_mat_f_dd(mat, mat_name, nd, ds, 1, 1);
+}
+
+void print_mat_i_dd(const int *const restrict mat, const char *mat_name, 
+        int nd, const int *const ds, const int stride, 
+		const int num_space)
+{
+	if (mat_name != NULL) {printf("%s = np.array(\n", mat_name);}
+	printf("[");
+	if (nd == 1) {
+		int m = ds[0];
+		for (int i = 0; i < m; i++) {
+			printf("%d", mat[i*stride]);
+			if (i < m-1) {printf(", ");}
+		}
+	} else {
+		int nds[nd-1];
+		for (int i = 0; i < nd-1; i++) {nds[i] = ds[i+1];}
+		for (int i = 0; i < ds[0]; i++) {
+			print_mat_i_dd(mat+i*stride, NULL, nd-1, nds, stride*ds[0],
+			            num_space+1);
+			if (i < ds[0]-1) {printf(",\n%*s", num_space, "");}
+		}
+	}
+	printf("]");
+	if (mat_name != NULL) {printf("\n)\n");}
+}
+
+void print_mat_i(const int *const restrict mat, const char *mat_name,
+        int nd, ...)
+{
+	va_list valist;
+	va_start(valist, nd);
+	int ds[nd];
+	for (int i = 0; i < nd; i++) {ds[i] = va_arg(valist, int);}
+	print_mat_i_dd(mat, mat_name, nd, ds, 1, 1);
+}
+
+int WriteData(const char *filename, const void *data, const size_t size,
+              const size_t n, const bool append)
+{
+	const char *mode = append ? "ab" : "wb";
+	FILE *fd = fopen(filename, mode);
+	if (fd == NULL)
+	{
+		printf("'fopen()' failed during call of 'WriteData()'.\n");
+		return -1;
+	}
+	// write data array to file
+	if (fwrite(data, size, n, fd) != n)
+	{
+		printf("'fwrite()' failed during call of 'WriteData()'.\n");
+		return -3;
+	}
+	fclose(fd);
+	return 0;
+}
 
 static int dqmc(struct sim_data *sim)
 {
@@ -91,6 +215,21 @@ static int dqmc(struct sim_data *sim)
 	const double *const restrict del = sim->p.del;
 	uint64_t *const restrict rng = sim->s.rng;
 	int *const restrict hs = sim->s.hs;
+	const double dt = sim->p.dt;
+	const double inv_dt_sq = sim->p.inv_dt_sq;
+	const int *const restrict map_munu = sim->php.map_munu;
+	const int max_D_nums_nonzero = sim->php.max_D_nums_nonzero;
+	const int nd = sim->php.nd;
+	const int num_munu = sim->php.num_munu;
+	const double *const restrict D = sim->php.D;
+	// const double *const restrict gmat = sim->php.gmat;
+	// const int *const restrict num_coupledX = sim->php.num_coupledX;
+	// const int *const restrict coupledX_ind = sim->php.coupledX_ind;
+	const int *const restrict D_nums_nonzero = sim->php.D_nums_nonzero;
+	const int *const restrict D_nonzero_inds = sim->php.D_nonzero_inds;
+	double *const restrict X = sim->s.X;
+	// double *const restrict exp_X = sim->s.exp_X;
+	// double *const restrict inv_exp_X = sim->s.inv_exp_X;
 
 	num *const Bu = my_calloc(N*N*L * sizeof(num));
 	num *const Bd = my_calloc(N*N*L * sizeof(num));
@@ -209,6 +348,19 @@ static int dqmc(struct sim_data *sim)
 	phase = phaseu*phased;
 	}
 
+	// print_mat_f(exp_Ku, "exp_Ku", 2, N, N);
+	// print_mat_f(exp_lambda, "exp_lambda(s=0)", 2, 1, N);
+	// print_mat_i(hs, "hs[l=0]", 2, 1, N);
+	// print_mat_f(Bu, "Bu[l=0]", 2, N, N);
+	// print_mat_f(gmat, "gmat", 2, N, N);
+	// print_mat_f(D, "D", 3, N, N, 6);
+	// print_mat_f(X, "X", 3, N, 3, L);
+	// print_mat_f(exp_X, "exp_X", 2, N, L);
+	// print_mat_i(num_coupledX, "num_coupledX", 2, 1, N);
+	// print_mat_i(coupledX_ind, "coupledX_ind", 2, sim->php.max_num_coupledX, N);
+	// print_mat_i(sim->php.D_nums_nonzero, "D_nums_nonzero", 2, 6, N);
+	// print_mat_i(sim->php.D_nonzero_inds, "D_nonzero_inds", 3, sim->php.max_D_nums_nonzero, 6, N);
+	// printf("dqmc.c ln363\n");
 	for (; sim->s.sweep < sim->p.n_sweep; sim->s.sweep++) {
 		const int sig = sig_check_state(sim->s.sweep, sim->p.n_sweep_warm, sim->p.n_sweep);
 		if (sig == 1) // stop flag
@@ -227,6 +379,21 @@ static int dqmc(struct sim_data *sim)
 			               tmpNN1u, tmpNN2u, tmpN1u,
 			               tmpNN1d, tmpNN2d, tmpN1d);
 			profile_end(updates);
+
+			profile_begin(localX_update);
+			shuffle(rng, N, site_order);
+			// if (l == 0) print_mat_f(X, "X0", 2, N, L);
+			// printf("l = %d\n", l);
+			// print_mat_f(X, "X0", 2, N, L);
+			update_localX(N, site_order, nd, num_munu, l, L, dt, inv_dt_sq, rng,
+			              X, sim->p.map_i, map_munu,
+						  D, max_D_nums_nonzero, D_nums_nonzero, D_nonzero_inds,
+						  sim->php.local_box_widths, sim->php.num_local_updates,
+						  sim->php.masses,
+						  &sim->m_ph);
+			// if (l == 0) print_mat_f(X, "X1", 2, N, L);
+			// print_mat_f(X, "X1", 2, N, L);
+			profile_end(localX_update);
 
 			const int f = l / n_matmul;
 			const int recalc = ((l + 1) % n_matmul == 0);
@@ -332,6 +499,7 @@ static int dqmc(struct sim_data *sim)
 
 			if (recalc) phase = phaseu*phased;
 
+            // printf("sim->s.sweep = %d, l = %d\n", sim->s.sweep, l);
 			if ((sim->s.sweep >= sim->p.n_sweep_warm) &&
 					(sim->p.period_eqlt > 0) &&
 					(l + 1) % sim->p.period_eqlt == 0) {
@@ -356,6 +524,37 @@ static int dqmc(struct sim_data *sim)
 				profile_begin(meas_eq);
 				measure_eqlt(&sim->p, phase, tmpNN2u, tmpNN2d, &sim->m_eq);
 				profile_end(meas_eq);
+			}
+		}
+
+        // print_mat_f(X, "X0", 2, N, L);
+		profile_begin(blockX_update);
+		shuffle(rng, N, site_order);
+		update_blockX(N, site_order, nd, num_munu, L, dt, rng,
+		              X, sim->p.map_i, map_munu, D,
+		              max_D_nums_nonzero, D_nums_nonzero, D_nonzero_inds,
+					  sim->php.block_box_widths, sim->php.num_block_updates,
+					  &sim->m_ph);
+		profile_end(blockX_update);
+		// print_mat_f(X, "X1", 2, N, L);
+
+        // print_mat_f(X, "X0", 2, N, L);
+		profile_begin(flipX_update);
+		shuffle(rng, N, site_order);
+		update_flipX(N, site_order, nd, num_munu, L, dt, rng,
+		              X, sim->p.map_i, map_munu, D,
+		              max_D_nums_nonzero, D_nums_nonzero, D_nonzero_inds,
+					  sim->php.num_flip_updates, &sim->m_ph);
+		profile_end(flipX_update);
+		// print_mat_f(X, "X1", 2, N, L);
+
+		if (sim->php.track_phonon_ite > 0) {
+			char path[1024];
+			for (int mu = 0; mu < nd; mu++) {
+				for (int i = 0; i < N; i++) {
+					sprintf(path, "phonon_ite_Xl0i%d.dat", i);
+					WriteData(path, X + i + mu*N, sizeof(double), 1, true);
+				}
 			}
 		}
 
@@ -445,6 +644,11 @@ static int dqmc(struct sim_data *sim)
 			// profile_begin(meas_uneq);
 			// measure_uneqlt(&sim->p, sign, ueGu, ueGd, &sim->m_ue);
 			// profile_end(meas_uneq);
+		}
+		if (sim->s.sweep >= sim->p.n_sweep_warm) {
+			profile_begin(meas_phonon);
+			measure_ph(&sim->p, phase, nd, X, &sim->m_ph);
+			profile_end(meas_phonon);
 		}
 	}
 

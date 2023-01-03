@@ -17,7 +17,11 @@
 	X(calc_o) \
 	X(bsofi) \
 	X(expand_g) \
-	X(meas_uneq)
+	X(meas_uneq) \
+	X(localX_update) \
+	X(blockX_update) \
+	X(flipX_update) \
+	X(meas_phonon)
 
 #define X(a) __profile_##a,
 enum {

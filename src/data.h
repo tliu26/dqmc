@@ -9,7 +9,7 @@ struct params {
 	int *bonds, *map_bs, *map_bb;
 	num *peierlsu, *peierlsd;
 //	double *K, *U;
-//	double dt;
+	double dt, inv_dt_sq;
 
 	int n_matmul, n_delay;
 	int n_sweep_warm, n_sweep_meas;
@@ -25,10 +25,30 @@ struct params {
 	int F, n_sweep;
 };
 
+struct phonon_params {
+	int nd, num_munu;
+	double *D;
+	int max_D_nums_nonzero;
+	int *D_nums_nonzero;
+	int *D_nonzero_inds;
+	int *map_munu;
+	double *local_box_widths, *block_box_widths;
+	int num_local_updates, num_block_updates, num_flip_updates;
+	double *masses;
+	double *gmat;
+	int max_num_coupledX;
+	int *num_coupledX;
+	int *coupledX_ind;
+	int track_phonon_ite;
+};
+
 struct state {
 	uint64_t rng[17];
 	int sweep;
 	int *hs;
+	double *X;
+	double *exp_X;
+	double *inv_exp_X;
 };
 
 struct meas_eqlt {
@@ -62,12 +82,36 @@ struct meas_uneqlt {
 	num *nem_nnnn, *nem_ssss;
 };
 
+struct meas_ph {
+	int *n_local_accept;
+	int *n_local_total;
+	int *n_block_accept;
+	int *n_block_total;
+	int *n_flip_accept;
+	int *n_flip_total;
+	int n_sample;
+	num sign;
+
+	double *X_avg;
+	double *X_avg_sq;
+	double *X_sq_avg;
+	double *V_avg;
+	double *V_sq_avg;
+	double *PE;
+	double *KE;
+	double *nX;
+
+	double *XX;
+};
+
 struct sim_data {
 	const char *file;
 	struct params p;
+	struct phonon_params php;
 	struct state s;
 	struct meas_eqlt m_eq;
 	struct meas_uneqlt m_ue;
+	struct meas_ph m_ph;
 };
 
 int sim_data_read_alloc(struct sim_data *sim, const char *file);

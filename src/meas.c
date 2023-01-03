@@ -1,6 +1,7 @@
 #include "meas.h"
 #include "data.h"
 #include "util.h"
+#include <stdio.h>
 
 // number of types of bonds kept for 4-particle nematic correlators.
 // 2 by default since these are slow measurerments
@@ -602,6 +603,47 @@ void measure_uneqlt(const struct params *const restrict p, const num phase,
 		                                 + dduu - ddud - dddu + dddd);
 	}
 	}
+	}
+}
+
+void measure_ph(const struct params *const restrict p, const num phase,
+        const int nd,
+        const double *const restrict X, struct meas_ph *const restrict m)
+{
+	m->n_sample++;
+	m->sign += phase;
+	const int N = p->N, L = p->L, num_i = p->num_i, num_ij = p->num_ij;
+	const double dt = p->dt;
+	const double inv_dt_sq = p->inv_dt_sq;
+	// 1 site measurements
+	for (int t = 0; t < L; t++)
+	for (int mu = 0; mu < nd; mu++)
+	for (int i = 0; i < N; i++) {
+		const int r = p->map_i[i];
+		const double pre = 1.0 / p->degen_i[r] / L;
+		const double curr_X = X[i + (mu + t*nd) * N];
+		const double next_X = X[i + (mu + ((t + 1) % L) * nd) * N];
+		m->X_avg[r + mu*num_i] += pre * curr_X;
+		// printf("pre = %.12f\n", pre);
+		// printf("curr_X = %.12f\n", curr_X);
+		// printf("m->X_avg[r + mu*num_i] = %.12f\n", m->X_avg[r + mu*num_i]);
+		m->X_sq_avg[r + mu*num_i] += pre * curr_X * curr_X;
+		m->V_avg[r + mu*num_i] += pre / dt * (next_X - curr_X);
+		m->V_sq_avg[r + mu*num_i] += pre * inv_dt_sq * (next_X - curr_X) * (next_X - curr_X);
+	}
+	// 2 site measurements
+	for (int t = 0; t < L; t++)
+	for (int nu = 0; nu < nd; nu++)
+	for (int mu = 0; mu < nd; mu++)
+	for (int j = 0; j < N; j++)
+	for (int i = 0; i < N; i++) {
+		const int r = p->map_ij[i + j*N];
+		// const num pre = phase / p->degen_ij[r];
+		const double pre = 1.0 / p->degen_ij[r];
+		m->XX[r + num_ij * (mu + nd * (nu + nd * t))] += pre * X[i + (mu + t*nd) * N] * X[j + nu*N];
+		// printf("XX = %.12f\n", X[i + (mu + t*nd) * N] * X[j + nu*N]);
+		// printf("pre = %.12f\n", pre);
+		// printf("m->XX[r + num_ij*t] = %.12f\n", m->XX[r + num_ij*t]);
 	}
 }
 
