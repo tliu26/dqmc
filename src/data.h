@@ -10,6 +10,7 @@ struct params {
 	num *peierlsu, *peierlsd;
 //	double *K, *U;
 	double dt, inv_dt_sq;
+	double chem_pot;
 
 	int n_matmul, n_delay;
 	int n_sweep_warm, n_sweep_meas;
@@ -36,9 +37,9 @@ struct phonon_params {
 	int num_local_updates, num_block_updates, num_flip_updates;
 	double *masses;
 	double *gmat;
-	int max_num_coupledX;
-	int *num_coupledX;
-	int *coupledX_ind;
+	int max_num_coupled_to_X;
+	int *num_coupled_to_X;
+	int *ind_coupled_to_X;
 	int track_phonon_ite;
 };
 
@@ -92,16 +93,16 @@ struct meas_ph {
 	int n_sample;
 	num sign;
 
-	double *X_avg;
-	double *X_avg_sq;
-	double *X_sq_avg;
-	double *V_avg;
-	double *V_sq_avg;
-	double *PE;
-	double *KE;
-	double *nX;
+	num *X_avg;
+	num *X_avg_sq;
+	num *X_sq_avg;
+	num *V_avg;
+	num *V_sq_avg;
+	num *PE;
+	num *KE;
+	num *nX;
 
-	double *XX;
+	num *XX;
 };
 
 struct sim_data {

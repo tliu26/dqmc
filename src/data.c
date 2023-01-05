@@ -38,6 +38,7 @@ int sim_data_read_alloc(struct sim_data *sim, const char *file)
 	my_read(_int, "/params/L",      &sim->p.L);
 	my_read(_double, "/params/dt", &sim->p.dt);
 	my_read(_double, "/params/inv_dt_sq", &sim->p.inv_dt_sq);
+	my_read(_double, "/params/chem_pot", &sim->p.chem_pot);
 	my_read(_int, "/params/num_i",  &sim->p.num_i);
 	my_read(_int, "/params/num_ij", &sim->p.num_ij);
 	my_read(_int, "/params/num_b", &sim->p.num_b);
@@ -50,7 +51,7 @@ int sim_data_read_alloc(struct sim_data *sim, const char *file)
 	my_read(_int, "/params/nd", &sim->php.nd);
 	my_read(_int, "/params/num_munu", &sim->php.num_munu);
 	my_read(_int, "/params/max_D_nums_nonzero", &sim->php.max_D_nums_nonzero);
-	// my_read(_int, "/params/max_num_coupledX",   &sim->php.max_num_coupledX);
+	my_read(_int, "/params/max_num_coupled_to_X",   &sim->php.max_num_coupled_to_X);
 	my_read(_int, "/params/num_local_updates",  &sim->php.num_local_updates);
 	my_read(_int, "/params/num_block_updates",  &sim->php.num_block_updates);
 	my_read(_int, "/params/num_flip_updates",  &sim->php.num_flip_updates);
@@ -62,7 +63,7 @@ int sim_data_read_alloc(struct sim_data *sim, const char *file)
 	const int nd = sim->php.nd;
 	const int num_munu = sim->php.num_munu;
 	const int max_D_nums_nonzero = sim->php.max_D_nums_nonzero;
-	// const int max_num_coupledX = sim->php.max_num_coupledX;
+	const int max_num_coupled_to_X = sim->php.max_num_coupled_to_X;
 
 	sim->p.map_i         = my_calloc(N        * sizeof(int));
 	sim->p.map_ij        = my_calloc(N*N      * sizeof(int));
@@ -94,13 +95,13 @@ int sim_data_read_alloc(struct sim_data *sim, const char *file)
 	sim->php.local_box_widths = my_calloc(num_i * sizeof(double));
 	sim->php.block_box_widths = my_calloc(num_i * sizeof(double));
 	sim->php.masses = my_calloc(num_i * sizeof(double));
-	// sim->php.gmat          = my_calloc(N*N      * sizeof(double));
-	// sim->php.num_coupledX  = my_calloc(N        * sizeof(int));
-	// sim->php.coupledX_ind  = my_calloc(N*max_num_coupledX * sizeof(int));
+	sim->php.gmat          = my_calloc(nd*N*N      * sizeof(double));
+	sim->php.num_coupled_to_X = my_calloc(N        * sizeof(int));
+	sim->php.ind_coupled_to_X = my_calloc(N*max_num_coupled_to_X * sizeof(int));
 	sim->s.hs            = my_calloc(N*L      * sizeof(int));
 	sim->s.X             = my_calloc(N*nd*L    * sizeof(double));
-	// sim->s.exp_X         = my_calloc(N*L      * sizeof(double));
-	// sim->s.inv_exp_X     = my_calloc(N*L      * sizeof(double));
+	sim->s.exp_X         = my_calloc(N*L      * sizeof(double));
+	sim->s.inv_exp_X     = my_calloc(N*L      * sizeof(double));
 	sim->m_eq.density    = my_calloc(num_i    * sizeof(num));
 	sim->m_eq.double_occ = my_calloc(num_i    * sizeof(num));
 	sim->m_eq.g00        = my_calloc(num_ij   * sizeof(num));
@@ -139,15 +140,15 @@ int sim_data_read_alloc(struct sim_data *sim, const char *file)
 			sim->m_ue.nem_ssss = my_calloc(num_bb*L * sizeof(num));
 		}
 	}
-	sim->m_ph.X_avg = my_calloc(nd*num_i * sizeof(double));
-	sim->m_ph.X_avg_sq = my_calloc(nd*num_i * sizeof(double));
-	sim->m_ph.X_sq_avg = my_calloc(nd*num_i * sizeof(double));
-	sim->m_ph.V_avg = my_calloc(nd*num_i * sizeof(double));
-	sim->m_ph.V_sq_avg = my_calloc(nd*num_i * sizeof(double));
-	sim->m_ph.PE = my_calloc(nd*num_i * sizeof(double));
-	sim->m_ph.KE = my_calloc(nd*num_i * sizeof(double));
-	sim->m_ph.nX = my_calloc(nd*num_ij*L * sizeof(double));
-	sim->m_ph.XX = my_calloc(nd*nd*num_ij*L * sizeof(double));
+	sim->m_ph.X_avg = my_calloc(nd*num_i * sizeof(num));
+	sim->m_ph.X_avg_sq = my_calloc(nd*num_i * sizeof(num));
+	sim->m_ph.X_sq_avg = my_calloc(nd*num_i * sizeof(num));
+	sim->m_ph.V_avg = my_calloc(nd*num_i * sizeof(num));
+	sim->m_ph.V_sq_avg = my_calloc(nd*num_i * sizeof(num));
+	sim->m_ph.PE = my_calloc(nd*num_i * sizeof(num));
+	sim->m_ph.KE = my_calloc(nd*num_i * sizeof(num));
+	sim->m_ph.nX = my_calloc(nd*num_ij*L * sizeof(num));
+	sim->m_ph.XX = my_calloc(nd*nd*num_ij*L * sizeof(num));
 	sim->m_ph.n_local_accept = my_calloc(num_i * sizeof(int));
 	sim->m_ph.n_local_total = my_calloc(num_i * sizeof(int));
 	sim->m_ph.n_block_accept = my_calloc(num_i * sizeof(int));
@@ -192,17 +193,17 @@ int sim_data_read_alloc(struct sim_data *sim, const char *file)
 	my_read(_double, "/params/local_box_widths", sim->php.local_box_widths);
 	my_read(_double, "/params/block_box_widths", sim->php.block_box_widths);
 	my_read(_double, "/params/ph_masses", sim->php.masses);
-	// my_read(_double, "/params/gmat",           sim->php.gmat);
-	// my_read(_int, "/params/num_coupledX",      sim->php.num_coupledX);
-	// my_read(_int, "/params/coupledX_ind",      sim->php.coupledX_ind);
+	my_read(_double, "/params/gmat",           sim->php.gmat);
+	my_read(_int, "/params/num_coupled_to_X",      sim->php.num_coupled_to_X);
+	my_read(_int, "/params/ind_coupled_to_X",      sim->php.ind_coupled_to_X);
 	my_read(_int,    "/params/F",             &sim->p.F);
 	my_read(_int,    "/params/n_sweep",       &sim->p.n_sweep);
 	my_read( ,       "/state/rng", H5T_NATIVE_UINT64, sim->s.rng);
 	my_read(_int,    "/state/sweep",          &sim->s.sweep);
 	my_read(_int,    "/state/hs",              sim->s.hs);
 	my_read(_double, "/state/X",               sim->s.X);
-	// my_read(_double, "/state/exp_X",           sim->s.exp_X);
-	// my_read(_double, "/state/inv_exp_X",       sim->s.inv_exp_X);
+	my_read(_double, "/state/exp_X",           sim->s.exp_X);
+	my_read(_double, "/state/inv_exp_X",       sim->s.inv_exp_X);
 	my_read(_int,    "/meas_eqlt/n_sample",   &sim->m_eq.n_sample);
 	my_read( , "/meas_eqlt/sign",        num_h5t, &sim->m_eq.sign);
 	my_read( , "/meas_eqlt/density",     num_h5t, sim->m_eq.density);
@@ -254,15 +255,15 @@ int sim_data_read_alloc(struct sim_data *sim, const char *file)
 	my_read(_int, "/meas_ph/n_flip_total",  sim->m_ph.n_flip_total);
 	my_read( , "/meas_ph/sign",        num_h5t, &sim->m_ph.sign);
 
-	my_read(_double, "/meas_ph/X_avg",    sim->m_ph.X_avg);
-	my_read(_double, "/meas_ph/X_avg_sq", sim->m_ph.X_avg_sq);
-	my_read(_double, "/meas_ph/X_sq_avg", sim->m_ph.X_sq_avg);
-	my_read(_double, "/meas_ph/V_avg",    sim->m_ph.V_avg);
-	my_read(_double, "/meas_ph/V_sq_avg", sim->m_ph.V_sq_avg);
-	my_read(_double, "/meas_ph/PE",       sim->m_ph.PE);
-	my_read(_double, "/meas_ph/KE",       sim->m_ph.KE);
-	my_read(_double, "/meas_ph/nX",       sim->m_ph.nX);
-	my_read(_double, "/meas_ph/XX",       sim->m_ph.XX);
+	my_read( , "/meas_ph/X_avg",    num_h5t, sim->m_ph.X_avg);
+	my_read( , "/meas_ph/X_avg_sq", num_h5t, sim->m_ph.X_avg_sq);
+	my_read( , "/meas_ph/X_sq_avg", num_h5t, sim->m_ph.X_sq_avg);
+	my_read( , "/meas_ph/V_avg",    num_h5t, sim->m_ph.V_avg);
+	my_read( , "/meas_ph/V_sq_avg", num_h5t, sim->m_ph.V_sq_avg);
+	my_read( , "/meas_ph/PE",       num_h5t, sim->m_ph.PE);
+	my_read( , "/meas_ph/KE",       num_h5t, sim->m_ph.KE);
+	my_read( , "/meas_ph/nX",       num_h5t, sim->m_ph.nX);
+	my_read( , "/meas_ph/XX",       num_h5t, sim->m_ph.XX);
 
 #undef my_read
 
@@ -292,8 +293,8 @@ int sim_data_save(const struct sim_data *sim)
 	my_write("/state/sweep",          H5T_NATIVE_INT,    &sim->s.sweep);
 	my_write("/state/hs",             H5T_NATIVE_INT,     sim->s.hs);
 	my_write("/state/X",              H5T_NATIVE_DOUBLE,  sim->s.X);
-	// my_write("/state/exp_X",          H5T_NATIVE_DOUBLE,  sim->s.exp_X);
-	// my_write("/state/inv_exp_X",      H5T_NATIVE_DOUBLE,  sim->s.inv_exp_X);
+	my_write("/state/exp_X",          H5T_NATIVE_DOUBLE,  sim->s.exp_X);
+	my_write("/state/inv_exp_X",      H5T_NATIVE_DOUBLE,  sim->s.inv_exp_X);
 	my_write("/meas_eqlt/n_sample",   H5T_NATIVE_INT,    &sim->m_eq.n_sample);
 	my_write("/meas_eqlt/sign",       num_h5t, &sim->m_eq.sign);
 	my_write("/meas_eqlt/density",    num_h5t,  sim->m_eq.density);
@@ -344,15 +345,15 @@ int sim_data_save(const struct sim_data *sim)
 	my_write("/meas_ph/n_flip_accept", H5T_NATIVE_INT, sim->m_ph.n_flip_accept);
 	my_write("/meas_ph/n_flip_total",  H5T_NATIVE_INT, sim->m_ph.n_flip_total);
 	my_write("/meas_ph/sign",  num_h5t, &sim->m_ph.sign);
-	my_write("/meas_ph/X_avg",    H5T_NATIVE_DOUBLE, sim->m_ph.X_avg);
-	my_write("/meas_ph/X_avg_sq", H5T_NATIVE_DOUBLE, sim->m_ph.X_avg_sq);
-	my_write("/meas_ph/X_sq_avg", H5T_NATIVE_DOUBLE, sim->m_ph.X_sq_avg);
-	my_write("/meas_ph/V_avg",    H5T_NATIVE_DOUBLE, sim->m_ph.V_avg);
-	my_write("/meas_ph/V_sq_avg", H5T_NATIVE_DOUBLE, sim->m_ph.V_sq_avg);
-	my_write("/meas_ph/PE",       H5T_NATIVE_DOUBLE, sim->m_ph.PE);
-	my_write("/meas_ph/KE",       H5T_NATIVE_DOUBLE, sim->m_ph.KE);
-	my_write("/meas_ph/nX",       H5T_NATIVE_DOUBLE, sim->m_ph.nX);
-	my_write("/meas_ph/XX",       H5T_NATIVE_DOUBLE, sim->m_ph.XX);
+	my_write("/meas_ph/X_avg",    num_h5t, sim->m_ph.X_avg);
+	my_write("/meas_ph/X_avg_sq", num_h5t, sim->m_ph.X_avg_sq);
+	my_write("/meas_ph/X_sq_avg", num_h5t, sim->m_ph.X_sq_avg);
+	my_write("/meas_ph/V_avg",    num_h5t, sim->m_ph.V_avg);
+	my_write("/meas_ph/V_sq_avg", num_h5t, sim->m_ph.V_sq_avg);
+	my_write("/meas_ph/PE",       num_h5t, sim->m_ph.PE);
+	my_write("/meas_ph/KE",       num_h5t, sim->m_ph.KE);
+	my_write("/meas_ph/nX",       num_h5t, sim->m_ph.nX);
+	my_write("/meas_ph/XX",       num_h5t, sim->m_ph.XX);
 
 #undef my_write
 
@@ -418,9 +419,9 @@ void sim_data_free(const struct sim_data *sim)
 	my_free(sim->m_eq.density);
 	my_free(sim->s.hs);
 	my_free(sim->s.X);
-	// my_free(sim->s.exp_X);
-	// my_free(sim->s.inv_exp_X);
-	// my_free(sim->php.gmat);
+	my_free(sim->s.exp_X);
+	my_free(sim->s.inv_exp_X);
+	my_free(sim->php.gmat);
 	my_free(sim->php.D);
 	my_free(sim->php.map_munu);
 	my_free(sim->php.D_nums_nonzero);
@@ -428,8 +429,8 @@ void sim_data_free(const struct sim_data *sim)
 	my_free(sim->php.local_box_widths);
 	my_free(sim->php.block_box_widths);
 	my_free(sim->php.masses);
-	// my_free(sim->php.num_coupledX);
-	// my_free(sim->php.coupledX_ind);
+	my_free(sim->php.num_coupled_to_X);
+	my_free(sim->php.ind_coupled_to_X);
 	my_free(sim->p.del);
 	my_free(sim->p.exp_lambda);
 	my_free(sim->p.inv_exp_halfKd);

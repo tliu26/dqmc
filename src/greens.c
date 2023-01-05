@@ -4,6 +4,42 @@
 #include "linalg.h"
 #include "prof.h"
 #include "util.h"
+#include <stdio.h>
+#include <stdarg.h>
+
+void print_mat_f_dd_rowmaj_greens(const double *const mat, const char *mat_name,
+        int nd, const int *const ds, const int num_space)
+{
+	if (mat_name != NULL) {printf("%s = np.array(\n", mat_name);}
+	printf("[");
+	if (nd == 1) {
+		int m = ds[0];
+		for (int i = 0; i < m; i++) {
+			printf("%.12G", mat[i]);
+			if (i < m-1) {printf(", ");}
+		}
+	} else {
+		int nds[nd-1];
+		int stride = 1;
+		for (int i = 0; i < nd-1; i++) {nds[i] = ds[i+1]; stride *= ds[i+1];}
+		for (int i = 0; i < ds[0]; i++) {
+			print_mat_f_dd_rowmaj_greens(mat+i*stride, NULL, nd-1, nds, num_space+1);
+			if (i < ds[0]-1) {printf(",\n%*s", num_space, "");}
+		}
+	}
+	printf("]");
+	if (mat_name != NULL) {printf("\n)\n");}
+}
+
+void print_mat_f_rowmaj_greens(const double *const mat, const char *mat_name,
+        int nd, ...)
+{
+	va_list valist;
+	va_start(valist, nd);
+	int ds[nd];
+	for (int i = 0; i < nd; i++) {ds[i] = va_arg(valist, int);}
+	print_mat_f_dd_rowmaj_greens(mat, mat_name, nd, ds, 1);
+}
 
 void mul_seq(const int N, const int L,
 		const int min, const int maxp1,
@@ -150,6 +186,7 @@ num calc_eq_g(const int l, const int N, const int L, const int n_mul,
 	}
 
 	// construct g from Eq 2.12 of 10.1016/j.laa.2010.06.023
+	// print_mat_f_rowmaj_greens(d, "d", 1, N);
 	for (int i = 0; i < N*N; i++) g[i] = 0.0;
 	for (int i = 0; i < N; i++) {
 		if (fabs(d[i]) > 1.0) { // v = 1/Db; d = Ds
@@ -169,8 +206,12 @@ num calc_eq_g(const int l, const int N, const int L, const int n_mul,
 
 	for (int i = 0; i < N*N; i++) T[i] += g[i];
 
+    // print_mat_f_rowmaj_greens(T, "T", 2, N, N);
+	// print_mat_f_rowmaj_greens(g, "g", 2, N, N);
+	// print_mat_f_rowmaj_greens(v, "v", 1, N);
 	xgetrf(N, N, T, N, pvt, &info);
 	xgetrs("N", N, N, T, N, pvt, g, N, &info);
+	// print_mat_f_rowmaj_greens(g, "gp", 2, N, N);
 
 	// determinant
 	// num det = 1.0;

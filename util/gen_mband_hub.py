@@ -79,9 +79,10 @@ def create_1(file_sim=None, file_params=None, overwrite=False, init_rng=None,
              Nx=4, Ny=4, Norb = 3, mu=-0.3, tpd=1.13, tpp=0.49, Udd=8.5, Upp = 0.0, dpd = 3.24, dt=0.125, L=64,
              nflux=0,
              K=0.1, Kp=0.0625, Kpp=0.025, M_Cu=1, M_O=0.25,
-             local_box_width_0=0.85, local_box_width_1=1.85, local_box_width_2=1.85,
+             g_Cu=0, g_Ox=0.5, g_Oy=0.5,
+             local_box_width_Cu=0.85, local_box_width_Ox=1.85, local_box_width_Oy=1.85,
              num_local_updates=48,
-             block_box_width_0=2.75, block_box_width_1=4, block_box_width_2=4,
+             block_box_width_Cu=2.75, block_box_width_Ox=4, block_box_width_Oy=4,
              num_block_updates=12,
              num_flip_updates=12,
              track_phonon_ite=0,
@@ -367,20 +368,20 @@ def create_1(file_sim=None, file_params=None, overwrite=False, init_rng=None,
     delll = np.array((exp_lmbd[map_i]**2 - 1, exp_lmbd[map_i]**-2 - 1))
 
     if trans_sym:
-        local_box_widths = np.array([local_box_width_0,
-                                     local_box_width_1,
-                                     local_box_width_2], dtype=np.float64)
-        block_box_widths = np.array([block_box_width_0,
-                                     block_box_width_1,
-                                     block_box_width_2], dtype=np.float64)
+        local_box_widths = np.array([local_box_width_Cu,
+                                     local_box_width_Ox,
+                                     local_box_width_Oy], dtype=np.float64)
+        block_box_widths = np.array([block_box_width_Cu,
+                                     block_box_width_Ox,
+                                     block_box_width_Oy], dtype=np.float64)
         ph_masses = np.array([M_Cu, M_O, M_O], dtype=np.float64)
     else:
-        local_box_widths = np.array([local_box_width_0,
-                                     local_box_width_1,
-                                     local_box_width_2] * Ncell, dtype=np.float64)
-        block_box_widths = np.array([block_box_width_0,
-                                     block_box_width_1,
-                                     block_box_width_2] * Ncell, dtype=np.float64)
+        local_box_widths = np.array([local_box_width_Cu,
+                                     local_box_width_Ox,
+                                     local_box_width_Oy] * Ncell, dtype=np.float64)
+        block_box_widths = np.array([block_box_width_Cu,
+                                     block_box_width_Ox,
+                                     block_box_width_Oy] * Ncell, dtype=np.float64)
         ph_masses = np.array([M_Cu, M_O, M_O] * Ncell, dtype=np.float64)
 
     div = np.uint64(1) << np.uint64(53)
@@ -400,7 +401,13 @@ def create_1(file_sim=None, file_params=None, overwrite=False, init_rng=None,
 
     # Phonon D-matrix: D_munu(R, R') where mu, nu = x, y or z
     # The generic matrix looks like [xx, yy, zz, xy, yz, zx] where each
-    # subblock is an N x N matrix D(R, R') = D(|R - R'|).
+    # subblock is an N x N matrix D(R, R') = D(|R - R'|). The meaning
+    # of D is different from A&M eq. 22.46, here D is like a look-up
+    # table, i.e. D_munu(R, R') gives the interaction between
+    # X_mu(R) and X_nu(R'). This is useful when proposing change in MC.
+    # For example, X_mu(R) -> X_mu(R) + dX, then use D to look up all
+    # the Harmonic terms DX_mu(R)X_nu(R') in the Hamiltonian that are
+    # affected by this change.
     num_munu = 6
     D = np.zeros((num_munu, N, N))
     for i in range(Ncell):
@@ -480,6 +487,36 @@ def create_1(file_sim=None, file_params=None, overwrite=False, init_rng=None,
                     D_nonzero_inds[i, munu, jj] = j
                     jj += 1
 
+    # Holstein electron-phonon interaction
+    # H_ep = \sum_sigma \sum_{m,i,j} g_{m,i,j} X_{m,i} n_{j,\sigma} where
+    # g_{m,i,j} = gmat[m, i, j]
+    gmat = np.zeros((nd, N, N), dtype=np.float64)
+    for i in range(Ncell):
+        gmat[2,   i*Norb,   i*Norb] = g_Cu
+        gmat[2, 1+i*Norb, 1+i*Norb] = g_Ox
+        gmat[2, 2+i*Norb, 2+i*Norb] = g_Oy
+
+    gmat_mask = (gmat != 0).any(0)
+    # num_coupled_to_X[i] = number of sites on which electrons (n_j) are coupled to
+    # X_{m,i} for any m
+    num_coupled_to_X = np.sum(gmat_mask, axis=-1)
+    # ind_coupled_to_X[i, jj] = index j of the jjth electron that are coupled to
+    # X_{m,i} for any m
+    ind_coupled_to_X = np.zeros((N, num_coupled_to_X.max()), dtype=np.int32) - 1
+    for i in range(N):
+        jj = 0
+        for j in range(N):
+            if gmat_mask[i, j]:
+                ind_coupled_to_X[i, jj] = j
+                jj += 1
+
+    # hep.shape = ((L, nd, N, 1) * ( , nd, N, N)).sum(1, 2)
+    #           = (L, nd, N, N).sum(1, 2)
+    #           = (L, N)
+    hep = np.sum(init_X[..., None] * gmat, axis=(1, 2))
+    init_exp_X = np.exp(-dt*hep)
+    init_inv_exp_X = np.exp(dt*hep)
+
     with h5py.File(file_params, "w" if overwrite else "x") as f:
         # parameters not used by dqmc code, but useful for analysis
         f.create_group("metadata")
@@ -504,6 +541,9 @@ def create_1(file_sim=None, file_params=None, overwrite=False, init_rng=None,
         f["metadata"]["Kpp"] = Kpp
         f["metadata"]["M_Cu"] = M_Cu
         f["metadata"]["M_O"] = M_O
+        f["metadata"]["g_Cu"] = g_Cu
+        f["metadata"]["g_Ox"] = g_Ox
+        f["metadata"]["g_Oy"] = g_Oy
 
         # parameters used by dqmc code
         f.create_group("params")
@@ -530,6 +570,7 @@ def create_1(file_sim=None, file_params=None, overwrite=False, init_rng=None,
         f["params"]["U"] = U_i
         f["params"]["dt"] = np.array(dt, dtype=np.float64)
         f["params"]["inv_dt_sq"] = np.array(1 / dt ** 2, dtype=np.float64)
+        f["params"]["chem_pot"] = np.array(mu, dtype=np.float64)
         f["params"]["nd"] = np.array(nd, dtype=np.int32)
         f["params"]["num_munu"] = np.array(num_munu, dtype=np.int32)
         f["params"]["map_munu"] = map_munu
@@ -537,6 +578,10 @@ def create_1(file_sim=None, file_params=None, overwrite=False, init_rng=None,
         f["params"]["D_nums_nonzero"] = D_nums_nonzero
         f["params"]["max_D_nums_nonzero"] = np.array(max_D_nums_nonzero, dtype=np.int32)
         f["params"]["D_nonzero_inds"] = D_nonzero_inds
+        f["params"]["gmat"] = gmat
+        f["params"]["max_num_coupled_to_X"] = np.array(num_coupled_to_X.max(), dtype=np.int32)
+        f["params"]["num_coupled_to_X"] = num_coupled_to_X
+        f["params"]["ind_coupled_to_X"] = ind_coupled_to_X
         f["params"]["local_box_widths"] = local_box_widths
         f["params"]["num_local_updates"] = np.array(num_local_updates, dtype=np.int32)
         f["params"]["block_box_widths"] = block_box_widths
@@ -604,6 +649,8 @@ def create_1(file_sim=None, file_params=None, overwrite=False, init_rng=None,
         f["state"]["rng"] = rng
         f["state"]["hs"] = init_hs
         f["state"]["X"] = init_X
+        f["state"]["exp_X"] = init_exp_X
+        f["state"]["inv_exp_X"] = init_inv_exp_X
         f["state"]["partial_write"] = 0
 
         # measurements
@@ -657,15 +704,15 @@ def create_1(file_sim=None, file_params=None, overwrite=False, init_rng=None,
         f["meas_ph"]["n_flip_total"] = np.zeros(num_i, dtype=np.int32)
         f["meas_ph"]["sign"] = np.array(0.0, dtype=dtype_num)
 
-        f["meas_ph"]["X_avg"] = np.zeros(num_i*nd, dtype=np.float64)
-        f["meas_ph"]["X_avg_sq"] = np.zeros(num_i*nd, dtype=np.float64)
-        f["meas_ph"]["X_sq_avg"] = np.zeros(num_i*nd, dtype=np.float64)
-        f["meas_ph"]["V_avg"] = np.zeros(num_i*nd, dtype=np.float64)
-        f["meas_ph"]["V_sq_avg"] = np.zeros(num_i*nd, dtype=np.float64)
-        f["meas_ph"]["PE"] = np.zeros(num_i*nd, dtype=np.float64)
-        f["meas_ph"]["KE"] = np.zeros(num_i*nd, dtype=np.float64)
-        f["meas_ph"]["nX"] = np.zeros(num_ij*nd*L, dtype=np.float64)
-        f["meas_ph"]["XX"] = np.zeros(num_ij*nd*nd*L, dtype=np.float64)
+        f["meas_ph"]["X_avg"] = np.zeros(num_i*nd, dtype=dtype_num)
+        f["meas_ph"]["X_avg_sq"] = np.zeros(num_i*nd, dtype=dtype_num)
+        f["meas_ph"]["X_sq_avg"] = np.zeros(num_i*nd, dtype=dtype_num)
+        f["meas_ph"]["V_avg"] = np.zeros(num_i*nd, dtype=dtype_num)
+        f["meas_ph"]["V_sq_avg"] = np.zeros(num_i*nd, dtype=dtype_num)
+        f["meas_ph"]["PE"] = np.zeros(num_i*nd, dtype=dtype_num)
+        f["meas_ph"]["KE"] = np.zeros(num_i*nd, dtype=dtype_num)
+        f["meas_ph"]["nX"] = np.zeros(num_ij*nd*L, dtype=dtype_num)
+        f["meas_ph"]["XX"] = np.zeros(num_ij*nd*nd*L, dtype=dtype_num)
 
 def create_batch(Nfiles=1, prefix=None, seed=None, Nstart=0, **kwargs):
     if seed is None:
@@ -688,6 +735,8 @@ def create_batch(Nfiles=1, prefix=None, seed=None, Nstart=0, **kwargs):
         Norb = f["metadata"]["Norb"][...]
         local_box_widths = f["params"]["local_box_widths"][...]
         map_i = f["params"]["map_i"][...]
+        gmat = f["params"]["gmat"][...]
+        dt = f["params"]["dt"][...]
         Ncell = N // Norb
 
     for i in range(Nstart+1, Nfiles):
@@ -699,7 +748,7 @@ def create_batch(Nfiles=1, prefix=None, seed=None, Nstart=0, **kwargs):
         for l in range(L):
             for r in range(N):
                 init_hs[l, r] = rand_uint(rng) >> np.uint64(63)
-        
+
         div = np.uint64(1) << np.uint64(53)
         for l in range(L):
             for m in range(nd):
@@ -709,6 +758,9 @@ def create_batch(Nfiles=1, prefix=None, seed=None, Nstart=0, **kwargs):
                         io = o + r * Norb
                         init_X[l, m, io] = (uniform_rand - 0.5) * \
                             local_box_widths[map_i[io]]
+        hep = np.sum(init_X[..., None] * gmat, axis=(1, 2))
+        init_exp_X = np.exp(-dt*hep)
+        init_inv_exp_X = np.exp(dt*hep)
 
         file_i = "{}_{}.h5".format(prefix, i)
         shutil.copy2(file_0, file_i)
@@ -717,6 +769,8 @@ def create_batch(Nfiles=1, prefix=None, seed=None, Nstart=0, **kwargs):
             f["state"]["rng"][...] = rng
             f["state"]["hs"][...] = init_hs
             f["state"]["X"][...] = init_X
+            f["state"]["exp_X"][...] = init_exp_X
+            f["state"]["inv_exp_X"][...] = init_inv_exp_X
     print("created simulation files:",
           file_0 if Nfiles == Nstart+1 else "{} ... {}".format(file_0, file_i))
     print("parameter file:", file_p)

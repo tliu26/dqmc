@@ -140,5 +140,19 @@ static inline void xtrtri(const char* uplo, const char* diag, const int n,
 	uplo, diag, &n, cast(a), &lda, info);
 }
 
+static inline void xgeru(const int m, const int n, const num alpha,
+        const num *x, const int incx, const num *y, const int incy,
+		num *a, const int lda)
+{
+#ifdef USE_CPLX
+    zgeru(
+#else
+    dger(
+#endif
+    &m, &n, ccast(&alpha),
+	ccast(x), &incx, ccast(y), &incy,
+	cast(a), &lda);
+}
+
 #undef ccast
 #undef cast

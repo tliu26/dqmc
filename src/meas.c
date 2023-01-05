@@ -620,7 +620,7 @@ void measure_ph(const struct params *const restrict p, const num phase,
 	for (int mu = 0; mu < nd; mu++)
 	for (int i = 0; i < N; i++) {
 		const int r = p->map_i[i];
-		const double pre = 1.0 / p->degen_i[r] / L;
+		const double pre = phase / p->degen_i[r] / L;
 		const double curr_X = X[i + (mu + t*nd) * N];
 		const double next_X = X[i + (mu + ((t + 1) % L) * nd) * N];
 		m->X_avg[r + mu*num_i] += pre * curr_X;
@@ -638,8 +638,7 @@ void measure_ph(const struct params *const restrict p, const num phase,
 	for (int j = 0; j < N; j++)
 	for (int i = 0; i < N; i++) {
 		const int r = p->map_ij[i + j*N];
-		// const num pre = phase / p->degen_ij[r];
-		const double pre = 1.0 / p->degen_ij[r];
+		const num pre = phase / p->degen_ij[r];
 		m->XX[r + num_ij * (mu + nd * (nu + nd * t))] += pre * X[i + (mu + t*nd) * N] * X[j + nu*N];
 		// printf("XX = %.12f\n", X[i + (mu + t*nd) * N] * X[j + nu*N]);
 		// printf("pre = %.12f\n", pre);

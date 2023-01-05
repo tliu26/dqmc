@@ -106,8 +106,76 @@
 	printf(#A " - " #B ":\tmax %.3e\tavg %.3e\n", max, avg); \
 } while (0);
 
-void print_mat_f_dd(const double *const restrict mat, const char *mat_name, 
-        int nd, const int *const ds, const int stride, 
+void print_mat_f_dd_rowmaj(const double *const mat, const char *mat_name,
+        int nd, const int *const ds, const int num_space)
+{
+	if (mat_name != NULL) {printf("%s = np.array(\n", mat_name);}
+	printf("[");
+	if (nd == 1) {
+		int m = ds[0];
+		for (int i = 0; i < m; i++) {
+			printf("%.12f", mat[i]);
+			if (i < m-1) {printf(", ");}
+		}
+	} else {
+		int nds[nd-1];
+		int stride = 1;
+		for (int i = 0; i < nd-1; i++) {nds[i] = ds[i+1]; stride *= ds[i+1];}
+		for (int i = 0; i < ds[0]; i++) {
+			print_mat_f_dd_rowmaj(mat+i*stride, NULL, nd-1, nds, num_space+1);
+			if (i < ds[0]-1) {printf(",\n%*s", num_space, "");}
+		}
+	}
+	printf("]");
+	if (mat_name != NULL) {printf("\n)\n");}
+}
+
+void print_mat_f_rowmaj(const double *const mat, const char *mat_name,
+        int nd, ...)
+{
+	va_list valist;
+	va_start(valist, nd);
+	int ds[nd];
+	for (int i = 0; i < nd; i++) {ds[i] = va_arg(valist, int);}
+	print_mat_f_dd_rowmaj(mat, mat_name, nd, ds, 1);
+}
+
+void print_mat_i_dd_rowmaj(const int *const mat, const char *mat_name,
+        int nd, const int *const ds, const int num_space)
+{
+	if (mat_name != NULL) {printf("%s = np.array(\n", mat_name);}
+	printf("[");
+	if (nd == 1) {
+		int m = ds[0];
+		for (int i = 0; i < m; i++) {
+			printf("%d", mat[i]);
+			if (i < m-1) {printf(", ");}
+		}
+	} else {
+		int nds[nd-1];
+		int stride = 1;
+		for (int i = 0; i < nd-1; i++) {nds[i] = ds[i+1]; stride *= ds[i+1];}
+		for (int i = 0; i < ds[0]; i++) {
+			print_mat_i_dd_rowmaj(mat+i*stride, NULL, nd-1, nds, num_space+1);
+			if (i < ds[0]-1) {printf(",\n%*s", num_space, "");}
+		}
+	}
+	printf("]");
+	if (mat_name != NULL) {printf("\n)\n");}
+}
+
+void print_mat_i_rowmaj(const int *const mat, const char *mat_name,
+        int nd, ...)
+{
+	va_list valist;
+	va_start(valist, nd);
+	int ds[nd];
+	for (int i = 0; i < nd; i++) {ds[i] = va_arg(valist, int);}
+	print_mat_i_dd_rowmaj(mat, mat_name, nd, ds, 1);
+}
+
+void print_mat_f_dd_colmaj(const double *const mat, const char *mat_name,
+        int nd, const int *const ds, const int stride,
 		const int num_space)
 {
 	if (mat_name != NULL) {printf("%s = np.array(\n", mat_name);}
@@ -122,7 +190,7 @@ void print_mat_f_dd(const double *const restrict mat, const char *mat_name,
 		int nds[nd-1];
 		for (int i = 0; i < nd-1; i++) {nds[i] = ds[i+1];}
 		for (int i = 0; i < ds[0]; i++) {
-			print_mat_f_dd(mat+i*stride, NULL, nd-1, nds, stride*ds[0],
+			print_mat_f_dd_colmaj(mat+i*stride, NULL, nd-1, nds, stride*ds[0],
 			            num_space+1);
 			if (i < ds[0]-1) {printf(",\n%*s", num_space, "");}
 		}
@@ -131,18 +199,18 @@ void print_mat_f_dd(const double *const restrict mat, const char *mat_name,
 	if (mat_name != NULL) {printf("\n)\n");}
 }
 
-void print_mat_f(const double *const restrict mat, const char *mat_name,
+void print_mat_f_colmaj(const double *const mat, const char *mat_name,
         int nd, ...)
 {
 	va_list valist;
 	va_start(valist, nd);
 	int ds[nd];
 	for (int i = 0; i < nd; i++) {ds[i] = va_arg(valist, int);}
-	print_mat_f_dd(mat, mat_name, nd, ds, 1, 1);
+	print_mat_f_dd_colmaj(mat, mat_name, nd, ds, 1, 1);
 }
 
-void print_mat_i_dd(const int *const restrict mat, const char *mat_name, 
-        int nd, const int *const ds, const int stride, 
+void print_mat_i_dd_colmaj(const int *const mat, const char *mat_name,
+        int nd, const int *const ds, const int stride,
 		const int num_space)
 {
 	if (mat_name != NULL) {printf("%s = np.array(\n", mat_name);}
@@ -157,7 +225,7 @@ void print_mat_i_dd(const int *const restrict mat, const char *mat_name,
 		int nds[nd-1];
 		for (int i = 0; i < nd-1; i++) {nds[i] = ds[i+1];}
 		for (int i = 0; i < ds[0]; i++) {
-			print_mat_i_dd(mat+i*stride, NULL, nd-1, nds, stride*ds[0],
+			print_mat_i_dd_colmaj(mat+i*stride, NULL, nd-1, nds, stride*ds[0],
 			            num_space+1);
 			if (i < ds[0]-1) {printf(",\n%*s", num_space, "");}
 		}
@@ -166,14 +234,14 @@ void print_mat_i_dd(const int *const restrict mat, const char *mat_name,
 	if (mat_name != NULL) {printf("\n)\n");}
 }
 
-void print_mat_i(const int *const restrict mat, const char *mat_name,
+void print_mat_i_colmaj(const int *const mat, const char *mat_name,
         int nd, ...)
 {
 	va_list valist;
 	va_start(valist, nd);
 	int ds[nd];
 	for (int i = 0; i < nd; i++) {ds[i] = va_arg(valist, int);}
-	print_mat_i_dd(mat, mat_name, nd, ds, 1, 1);
+	print_mat_i_dd_colmaj(mat, mat_name, nd, ds, 1, 1);
 }
 
 int WriteData(const char *filename, const void *data, const size_t size,
@@ -217,19 +285,21 @@ static int dqmc(struct sim_data *sim)
 	int *const restrict hs = sim->s.hs;
 	const double dt = sim->p.dt;
 	const double inv_dt_sq = sim->p.inv_dt_sq;
+	const double chem_pot = sim->p.chem_pot;
 	const int *const restrict map_munu = sim->php.map_munu;
 	const int max_D_nums_nonzero = sim->php.max_D_nums_nonzero;
+	const int n_max = sim->php.max_num_coupled_to_X;
 	const int nd = sim->php.nd;
 	const int num_munu = sim->php.num_munu;
 	const double *const restrict D = sim->php.D;
-	// const double *const restrict gmat = sim->php.gmat;
-	// const int *const restrict num_coupledX = sim->php.num_coupledX;
-	// const int *const restrict coupledX_ind = sim->php.coupledX_ind;
 	const int *const restrict D_nums_nonzero = sim->php.D_nums_nonzero;
 	const int *const restrict D_nonzero_inds = sim->php.D_nonzero_inds;
+	const double *const gmat = sim->php.gmat;
+	const int *const restrict num_coupled_to_X = sim->php.num_coupled_to_X;
+	const int *const ind_coupled_to_X = sim->php.ind_coupled_to_X;
 	double *const restrict X = sim->s.X;
-	// double *const restrict exp_X = sim->s.exp_X;
-	// double *const restrict inv_exp_X = sim->s.inv_exp_X;
+	double *const restrict exp_X = sim->s.exp_X;
+	double *const restrict inv_exp_X = sim->s.inv_exp_X;
 
 	num *const Bu = my_calloc(N*N*L * sizeof(num));
 	num *const Bd = my_calloc(N*N*L * sizeof(num));
@@ -322,9 +392,9 @@ static int dqmc(struct sim_data *sim)
 	{
 	if (sim->p.period_uneqlt > 0)
 		for (int l = 0; l < L; l++)
-			calciBu(iBu + N*N*l, l);
+			calcPhononiBu(iBu + N*N*l, l);
 	for (int l = 0; l < L; l++)
-		calcBu(Bu + N*N*l, l);
+		calcPhononBu(Bu + N*N*l, l);
 	for (int f = 0; f < F; f++)
 		mul_seq(N, L, f*n_matmul, ((f + 1)*n_matmul) % L, 1.0,
 		        Bu, Cu + N*N*f, N, tmpNN1u);
@@ -335,9 +405,9 @@ static int dqmc(struct sim_data *sim)
 	{
 	if (sim->p.period_uneqlt > 0)
 		for (int l = 0; l < L; l++)
-			calciBd(iBd + N*N*l, l);
+			calcPhononiBd(iBd + N*N*l, l);
 	for (int l = 0; l < L; l++)
-		calcBd(Bd + N*N*l, l);
+		calcPhononBd(Bd + N*N*l, l);
 	for (int f = 0; f < F; f++)
 		mul_seq(N, L, f*n_matmul, ((f + 1)*n_matmul) % L, 1.0,
 		        Bd, Cd + N*N*f, N, tmpNN1d);
@@ -348,20 +418,31 @@ static int dqmc(struct sim_data *sim)
 	phase = phaseu*phased;
 	}
 
-	// print_mat_f(exp_Ku, "exp_Ku", 2, N, N);
-	// print_mat_f(exp_lambda, "exp_lambda(s=0)", 2, 1, N);
-	// print_mat_i(hs, "hs[l=0]", 2, 1, N);
-	// print_mat_f(Bu, "Bu[l=0]", 2, N, N);
-	// print_mat_f(gmat, "gmat", 2, N, N);
-	// print_mat_f(D, "D", 3, N, N, 6);
-	// print_mat_f(X, "X", 3, N, 3, L);
-	// print_mat_f(exp_X, "exp_X", 2, N, L);
-	// print_mat_i(num_coupledX, "num_coupledX", 2, 1, N);
-	// print_mat_i(coupledX_ind, "coupledX_ind", 2, sim->php.max_num_coupledX, N);
-	// print_mat_i(sim->php.D_nums_nonzero, "D_nums_nonzero", 2, 6, N);
-	// print_mat_i(sim->php.D_nonzero_inds, "D_nonzero_inds", 3, sim->php.max_D_nums_nonzero, 6, N);
+	// print_mat_f_colmaj(exp_Ku, "exp_Ku", 2, N, N);
+	// print_mat_f_colmaj(exp_lambda, "exp_lambda(s=0)", 2, 1, N);
+	// print_mat_i_colmaj(hs, "hs[l=0]", 2, 1, N);
+	// print_mat_i_rowmaj(hs, "hs", 2, L, N);
+	// print_mat_f_colmaj(Bu, "Bu[l=0]", 2, N, N);
+	// print_mat_f_colmaj(gmat, "gmat", 2, N, N);
+	// print_mat_f_colmaj(D, "D", 3, N, N, num_munu);
+	// print_mat_f_rowmaj(D, "D", 3, num_munu, N, N);
+	// print_mat_f_colmaj(X, "X", 3, N, nd, L);
+	// print_mat_f_rowmaj(X, "X", 3, L, nd, N);
+	// print_mat_f_rowmaj(exp_X, "exp_X", 2, L, N);
+	// print_mat_f_rowmaj(inv_exp_X, "inv_exp_X", 2, L, N);
+	// print_mat_f_rowmaj(Bu, "Bu", 3, L, N, N);
+	// print_mat_f_rowmaj(iBu, "iBu", 3, L, N, N);
+	// print_mat_f_rowmaj(Bd, "Bd", 3, L, N, N);
+	// print_mat_f_rowmaj(iBd, "iBd", 3, L, N, N);
+	// print_mat_f_colmaj(exp_X, "exp_X", 2, N, L);
+	// print_mat_i_colmaj(num_coupled_to_X, "num_coupled_to_X", 2, 1, N);
+	// print_mat_i_colmaj(ind_coupled_to_X, "ind_coupled_to_X", 2, sim->php.n_max, N);
+	// print_mat_i_colmaj(sim->php.D_nums_nonzero, "D_nums_nonzero", 2, num_munu, N);
+	// print_mat_i_rowmaj(sim->php.D_nums_nonzero, "D_nums_nonzero", 2, N, num_munu);
+	// print_mat_i_colmaj(sim->php.D_nonzero_inds, "D_nonzero_inds", 3, sim->php.max_D_nums_nonzero, 6, N);
 	// printf("dqmc.c ln363\n");
 	for (; sim->s.sweep < sim->p.n_sweep; sim->s.sweep++) {
+		// printf("sweep = %d\n", sim->s.sweep);
 		const int sig = sig_check_state(sim->s.sweep, sim->p.n_sweep_warm, sim->p.n_sweep);
 		if (sig == 1) // stop flag
 			break;
@@ -371,6 +452,8 @@ static int dqmc(struct sim_data *sim)
 				fprintf(stderr, "save_file() failed: %d\n", status);
 		}
 
+		double logdetu = 0;
+		double logdetd = 0;
 		for (int l = 0; l < L; l++) {
 			profile_begin(updates);
 			shuffle(rng, N, site_order);
@@ -380,20 +463,60 @@ static int dqmc(struct sim_data *sim)
 			               tmpNN1d, tmpNN2d, tmpN1d);
 			profile_end(updates);
 
+            // if (sim->s.sweep == 27) {
+			// 	printf("l = %d\n", l);
+			// 	print_mat_f_rowmaj(gu, "gu_pre_Xup", 2, N, N);
+			// 	print_mat_f_rowmaj(gd, "gd_pre_Xup", 2, N, N);
+			// }
 			profile_begin(localX_update);
 			shuffle(rng, N, site_order);
-			// if (l == 0) print_mat_f(X, "X0", 2, N, L);
+			// if (l == 0) print_mat_f_colmaj(X, "X0", 2, N, L);
 			// printf("l = %d\n", l);
-			// print_mat_f(X, "X0", 2, N, L);
+			// print_mat_f_colmaj(X, "X0", 2, N, L);
+			// if (l == 10) {
+			// 	print_mat_f_rowmaj(X, "X0", 2, L, N);
+			// 	print_mat_f_rowmaj(gu, "gu", 2, N, N);
+			// }
 			update_localX(N, site_order, nd, num_munu, l, L, dt, inv_dt_sq, rng,
-			              X, sim->p.map_i, map_munu,
+			              X, exp_X, inv_exp_X, gu, gd, &phase,
+						  tmpNN1u, tmpN1u, tmpN2u, pvtu,
+						  tmpNN1d, tmpN1d, tmpN2d, pvtd,
+						  sim->p.map_i, map_munu,
 						  D, max_D_nums_nonzero, D_nums_nonzero, D_nonzero_inds,
+						  gmat, n_max, num_coupled_to_X, ind_coupled_to_X,
 						  sim->php.local_box_widths, sim->php.num_local_updates,
 						  sim->php.masses,
 						  &sim->m_ph);
-			// if (l == 0) print_mat_f(X, "X1", 2, N, L);
-			// print_mat_f(X, "X1", 2, N, L);
+			// if (l == 0) print_mat_f_colmaj(X, "X1", 2, N, L);
+			// print_mat_f_colmaj(X, "X1", 2, N, L);
 			profile_end(localX_update);
+
+			// if (sim->s.sweep == 27) {
+			// 	print_mat_f_rowmaj(gu, "gu_post_Xup", 2, N, N);
+			// 	print_mat_f_rowmaj(gd, "gd_post_Xup", 2, N, N);
+			// 	num *const Bu_r = my_calloc(N*N*L * sizeof(num));
+			// 	num *const Bd_r = my_calloc(N*N*L * sizeof(num));
+			// 	num *const restrict gu_r = my_calloc(N*N * sizeof(num));
+			// 	num *const restrict gd_r = my_calloc(N*N * sizeof(num));
+			// 	memcpy(Bu_r, Bu, N*N*L*sizeof(num));
+			// 	memcpy(Bd_r, Bd, N*N*L*sizeof(num));
+			// 	calcPhononBu(Bu_r + N*N*l, l);
+			// 	calcPhononBd(Bd_r + N*N*l, l);
+			// 	calc_eq_g(l, N, L, 1, Bu_r, gu_r,
+			// 	          tmpNN1u, tmpNN2u, tmpN1u, tmpN2u,
+			// 			  tmpN3u, pvtu, worku, lwork);
+			// 	calc_eq_g(l, N, L, 1, Bd_r, gd_r,
+			// 	          tmpNN1d, tmpNN2d, tmpN1d, tmpN2d,
+			// 			  tmpN3d, pvtd, workd, lwork);
+			// 	print_mat_f_rowmaj(gu_r, "gu_r", 2, N, N);
+			// 	print_mat_f_rowmaj(gd_r, "gd_r", 2, N, N);
+			// 	matdiff(N, N, gu_r, N, gu, N);
+			// 	matdiff(N, N, gd_r, N, gd, N);
+			// 	my_free(Bu_r);
+			// 	my_free(Bd_r);
+			// 	my_free(gu_r);
+			// 	my_free(gd_r);
+			// }
 
 			const int f = l / n_matmul;
 			const int recalc = ((l + 1) % n_matmul == 0);
@@ -406,9 +529,9 @@ static int dqmc(struct sim_data *sim)
 			num *const restrict iBul = iBu + N*N*l;
 			num *const restrict Cuf = Cu + N*N*f;
 			profile_begin(calcb);
-			calcBu(Bul, l);
+			calcPhononBu(Bul, l);
 			if (!recalc || sim->p.period_uneqlt > 0)
-				calciBu(iBul, l);
+				calcPhononiBu(iBul, l);
 			profile_end(calcb);
 			if (recalc) {
 				profile_begin(multb);
@@ -418,7 +541,7 @@ static int dqmc(struct sim_data *sim)
 				profile_begin(recalc);
 				#ifdef CHECK_G_WRP
 				if (sim->p.period_uneqlt == 0)
-					calciBu(iBu + N*N*l, l);
+					calcPhononiBu(iBu + N*N*l, l);
 				matmul(tmpNN1u, gu, iBu + N*N*l);
 				matmul(guwrp, Bu + N*N*l, tmpNN1u);
 				#endif
@@ -430,6 +553,9 @@ static int dqmc(struct sim_data *sim)
 				phaseu = calc_eq_g((f + 1) % F, N, F, N_MUL, Cu, gu,
 				                  tmpNN1u, tmpNN2u, tmpN1u, tmpN2u,
 				                  tmpN3u, pvtu, worku, lwork);
+				if (l == L-1)
+				    for (int i = 0; i < N; i++)
+					    logdetu += log(fabs(tmpN3u[i])) - log(fabs(tmpNN2u[i + i*N]));
 				profile_end(recalc);
 			} else {
 				profile_begin(wrap);
@@ -444,9 +570,9 @@ static int dqmc(struct sim_data *sim)
 			num *const restrict iBdl = iBd + N*N*l;
 			num *const restrict Cdf = Cd + N*N*f;
 			profile_begin(calcb);
-			calcBd(Bdl, l);
+			calcPhononBd(Bdl, l);
 			if (!recalc || sim->p.period_uneqlt > 0)
-				calciBd(iBdl, l);
+				calcPhononiBd(iBdl, l);
 			profile_end(calcb);
 			if (recalc) {
 				profile_begin(multb);
@@ -456,7 +582,7 @@ static int dqmc(struct sim_data *sim)
 				profile_begin(recalc);
 				#ifdef CHECK_G_WRP
 				if (sim->p.period_uneqlt == 0)
-					calciBd(iBd + N*N*l, l);
+					calcPhononiBd(iBd + N*N*l, l);
 				matmul(tmpNN1d, gd, iBd + N*N*l);
 				matmul(gdwrp, Bd + N*N*l, tmpNN1d);
 				#endif
@@ -468,6 +594,9 @@ static int dqmc(struct sim_data *sim)
 				phased = calc_eq_g((f + 1) % F, N, F, N_MUL, Cd, gd,
 				                  tmpNN1d, tmpNN2d, tmpN1d, tmpN2d,
 				                  tmpN3d, pvtd, workd, lwork);
+				if (l == L-1)
+				    for (int i = 0; i < N; i++)
+					    logdetd += log(fabs(tmpN3d[i])) - log(fabs(tmpNN2d[i + i*N]));
 				profile_end(recalc);
 			} else {
 				profile_begin(wrap);
@@ -527,26 +656,47 @@ static int dqmc(struct sim_data *sim)
 			}
 		}
 
-        // print_mat_f(X, "X0", 2, N, L);
+        // print_mat_f_colmaj(X, "X0", 2, N, L);
 		profile_begin(blockX_update);
 		shuffle(rng, N, site_order);
-		update_blockX(N, site_order, nd, num_munu, L, dt, rng,
-		              X, sim->p.map_i, map_munu, D,
+		update_blockX(N, site_order, nd, num_munu, L, F, n_matmul, dt, rng,
+		              X, exp_X, inv_exp_X, exp_lambda, hs, exp_Ku, exp_Kd,
+					  &logdetu, &logdetd,
+					  tmpNN1u, tmpNN2u, tmpN1u, tmpN2u, tmpN3u, pvtu, worku,
+					  tmpNN1d, tmpNN2d, tmpN1d, tmpN2d, tmpN3d, pvtd, workd,
+					  lwork, sim->p.map_i, map_munu, D,
 		              max_D_nums_nonzero, D_nums_nonzero, D_nonzero_inds,
+					  gmat, n_max, num_coupled_to_X, ind_coupled_to_X,
 					  sim->php.block_box_widths, sim->php.num_block_updates,
 					  &sim->m_ph);
+		update_time_step_mats(N, L, F, n_matmul, exp_X, inv_exp_X,
+		              exp_lambda, hs, exp_Ku, exp_Kd, inv_exp_Ku, inv_exp_Kd,
+					  Bu, iBu, gu, Bd, iBd, gd, Cu, Cd, &phase,
+					  tmpNN1u, tmpNN2u, tmpN1u, tmpN2u, tmpN3u, pvtu, worku,
+					  tmpNN1d, tmpNN2d, tmpN1d, tmpN2d, tmpN3d, pvtd, workd, lwork);
 		profile_end(blockX_update);
-		// print_mat_f(X, "X1", 2, N, L);
+		// print_mat_f_colmaj(X, "X1", 2, N, L);
 
-        // print_mat_f(X, "X0", 2, N, L);
+        // print_mat_f_colmaj(X, "X0", 2, N, L);
 		profile_begin(flipX_update);
 		shuffle(rng, N, site_order);
-		update_flipX(N, site_order, nd, num_munu, L, dt, rng,
-		              X, sim->p.map_i, map_munu, D,
-		              max_D_nums_nonzero, D_nums_nonzero, D_nonzero_inds,
-					  sim->php.num_flip_updates, &sim->m_ph);
+		update_flipX(N, site_order, nd, num_munu, L, F, n_matmul,
+		             dt, chem_pot, rng,
+		             X, exp_X, inv_exp_X, exp_lambda, hs, exp_Ku, exp_Kd,
+					 &logdetu, &logdetd,
+					 tmpNN1u, tmpNN2u, tmpN1u, tmpN2u, tmpN3u, pvtu, worku,
+					 tmpNN1d, tmpNN2d, tmpN1d, tmpN2d, tmpN3d, pvtd, workd,
+					 lwork, sim->p.map_i, map_munu, D,
+					 max_D_nums_nonzero, D_nums_nonzero, D_nonzero_inds,
+					 gmat, n_max, num_coupled_to_X, ind_coupled_to_X,
+					 sim->php.num_flip_updates, &sim->m_ph);
+		update_time_step_mats(N, L, F, n_matmul, exp_X, inv_exp_X,
+		             exp_lambda, hs, exp_Ku, exp_Kd, inv_exp_Ku, inv_exp_Kd,
+					 Bu, iBu, gu, Bd, iBd, gd, Cu, Cd, &phase,
+					 tmpNN1u, tmpNN2u, tmpN1u, tmpN2u, tmpN3u, pvtu, worku,
+					 tmpNN1d, tmpNN2d, tmpN1d, tmpN2d, tmpN3d, pvtd, workd, lwork);
 		profile_end(flipX_update);
-		// print_mat_f(X, "X1", 2, N, L);
+		// print_mat_f_colmaj(X, "X1", 2, N, L);
 
 		if (sim->php.track_phonon_ite > 0) {
 			char path[1024];
@@ -652,6 +802,8 @@ static int dqmc(struct sim_data *sim)
 		}
 	}
 
+	// print_mat_f_colmaj(X, "X", 3, N, nd, L);
+	// print_mat_f_rowmaj(X, "X", 3, L, nd, N);
 
 	my_free(workd);
 	my_free(worku);
