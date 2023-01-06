@@ -61,7 +61,7 @@ def rand_jump(rng):
 def create_1(file_sim=None, file_params=None, overwrite=False, init_rng=None,
              Nx=16, Ny=4, mu=0.0, tp=0.0, U=6.0, dt=0.115, L=40,
              nflux=0,
-             omega=0.2, J=0, g0=0.05, g1=0.01, g2=0,
+             omega=0.2, J=0, phonon_k=0.01, g0=0.05, g1=0.01, g2=0,
              local_box_width=2, num_local_updates=64,
              block_box_width=22, num_block_updates=16,
              num_flip_updates=16,
@@ -392,6 +392,7 @@ def create_1(file_sim=None, file_params=None, overwrite=False, init_rng=None,
         f["params"]["D_nums_nonzero"] = D_nums_nonzero
         f["params"]["max_D_nums_nonzero"] = np.array(max_D_nums_nonzero, dtype=np.int32)
         f["params"]["D_nonzero_inds"] = D_nonzero_inds
+        f["params"]["phonon_k"] = np.array(phonon_k, dtype=np.float64)
         f["params"]["gmat"] = gmat
         f["params"]["max_num_coupled_to_X"] = np.array(num_coupled_to_X.max(), dtype=np.int32)
         f["params"]["num_coupled_to_X"] = num_coupled_to_X
@@ -510,6 +511,7 @@ def create_1(file_sim=None, file_params=None, overwrite=False, init_rng=None,
         f["meas_ph"]["X_avg"] = np.zeros(num_i*nd, dtype=dtype_num)
         f["meas_ph"]["X_avg_sq"] = np.zeros(num_i*nd, dtype=dtype_num)
         f["meas_ph"]["X_sq_avg"] = np.zeros(num_i*nd, dtype=dtype_num)
+        f["meas_ph"]["X_cubed_avg"] = np.zeros(num_i*nd, dtype=dtype_num)
         f["meas_ph"]["V_avg"] = np.zeros(num_i*nd, dtype=dtype_num)
         f["meas_ph"]["V_sq_avg"] = np.zeros(num_i*nd, dtype=dtype_num)
         f["meas_ph"]["PE"] = np.zeros(num_i*nd, dtype=dtype_num)

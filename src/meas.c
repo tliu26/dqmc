@@ -627,7 +627,8 @@ void measure_ph(const struct params *const restrict p, const num phase,
 		// printf("pre = %.12f\n", pre);
 		// printf("curr_X = %.12f\n", curr_X);
 		// printf("m->X_avg[r + mu*num_i] = %.12f\n", m->X_avg[r + mu*num_i]);
-		m->X_sq_avg[r + mu*num_i] += pre * curr_X * curr_X;
+		m->X_sq_avg[r + mu*num_i] += pre * square(curr_X);
+		m->X_cubed_avg[r + mu*num_i] += pre * square(curr_X) * curr_X;
 		m->V_avg[r + mu*num_i] += pre / dt * (next_X - curr_X);
 		m->V_sq_avg[r + mu*num_i] += pre * inv_dt_sq * (next_X - curr_X) * (next_X - curr_X);
 	}

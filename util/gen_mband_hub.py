@@ -78,7 +78,7 @@ def rand_jump(rng):
 def create_1(file_sim=None, file_params=None, overwrite=False, init_rng=None,
              Nx=4, Ny=4, Norb = 3, mu=-0.3, tpd=1.13, tpp=0.49, Udd=8.5, Upp = 0.0, dpd = 3.24, dt=0.125, L=64,
              nflux=0,
-             K=0.1, Kp=0.0625, Kpp=0.025, M_Cu=1, M_O=0.25,
+             K=0.1, Kp=0.0625, Kpp=0.025, phonon_k=0.05, M_Cu=1, M_O=0.25,
              g_Cu=0, g_Ox=0.5, g_Oy=0.5,
              local_box_width_Cu=0.85, local_box_width_Ox=1.85, local_box_width_Oy=1.85,
              num_local_updates=48,
@@ -578,6 +578,7 @@ def create_1(file_sim=None, file_params=None, overwrite=False, init_rng=None,
         f["params"]["D_nums_nonzero"] = D_nums_nonzero
         f["params"]["max_D_nums_nonzero"] = np.array(max_D_nums_nonzero, dtype=np.int32)
         f["params"]["D_nonzero_inds"] = D_nonzero_inds
+        f["params"]["phonon_k"] = np.array(phonon_k, dtype=np.float64)
         f["params"]["gmat"] = gmat
         f["params"]["max_num_coupled_to_X"] = np.array(num_coupled_to_X.max(), dtype=np.int32)
         f["params"]["num_coupled_to_X"] = num_coupled_to_X
@@ -707,6 +708,7 @@ def create_1(file_sim=None, file_params=None, overwrite=False, init_rng=None,
         f["meas_ph"]["X_avg"] = np.zeros(num_i*nd, dtype=dtype_num)
         f["meas_ph"]["X_avg_sq"] = np.zeros(num_i*nd, dtype=dtype_num)
         f["meas_ph"]["X_sq_avg"] = np.zeros(num_i*nd, dtype=dtype_num)
+        f["meas_ph"]["X_cubed_avg"] = np.zeros(num_i*nd, dtype=dtype_num)
         f["meas_ph"]["V_avg"] = np.zeros(num_i*nd, dtype=dtype_num)
         f["meas_ph"]["V_sq_avg"] = np.zeros(num_i*nd, dtype=dtype_num)
         f["meas_ph"]["PE"] = np.zeros(num_i*nd, dtype=dtype_num)

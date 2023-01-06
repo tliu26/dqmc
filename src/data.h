@@ -29,6 +29,7 @@ struct params {
 struct phonon_params {
 	int nd, num_munu;
 	double *D;
+	double phonon_k;
 	int max_D_nums_nonzero;
 	int *D_nums_nonzero;
 	int *D_nonzero_inds;
@@ -96,6 +97,7 @@ struct meas_ph {
 	num *X_avg;
 	num *X_avg_sq;
 	num *X_sq_avg;
+	num *X_cubed_avg;
 	num *V_avg;
 	num *V_sq_avg;
 	num *PE;

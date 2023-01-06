@@ -22,3 +22,8 @@ static inline void *my_calloc(size_t size)
 	if (p != NULL) memset(p, 0, size);
 	return p;
 }
+
+static inline double square(const double x)
+{
+	return x*x;
+}

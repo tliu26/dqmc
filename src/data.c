@@ -48,6 +48,7 @@ int sim_data_read_alloc(struct sim_data *sim, const char *file)
 	my_read(_int, "/params/meas_bond_corr", &sim->p.meas_bond_corr);
 	my_read(_int, "/params/meas_energy_corr", &sim->p.meas_energy_corr);
 	my_read(_int, "/params/meas_nematic_corr", &sim->p.meas_nematic_corr);
+	my_read(_double, "/params/phonon_k", &sim->php.phonon_k);
 	my_read(_int, "/params/nd", &sim->php.nd);
 	my_read(_int, "/params/num_munu", &sim->php.num_munu);
 	my_read(_int, "/params/max_D_nums_nonzero", &sim->php.max_D_nums_nonzero);
@@ -143,6 +144,7 @@ int sim_data_read_alloc(struct sim_data *sim, const char *file)
 	sim->m_ph.X_avg = my_calloc(nd*num_i * sizeof(num));
 	sim->m_ph.X_avg_sq = my_calloc(nd*num_i * sizeof(num));
 	sim->m_ph.X_sq_avg = my_calloc(nd*num_i * sizeof(num));
+	sim->m_ph.X_cubed_avg = my_calloc(nd*num_i * sizeof(num));
 	sim->m_ph.V_avg = my_calloc(nd*num_i * sizeof(num));
 	sim->m_ph.V_sq_avg = my_calloc(nd*num_i * sizeof(num));
 	sim->m_ph.PE = my_calloc(nd*num_i * sizeof(num));
@@ -258,6 +260,7 @@ int sim_data_read_alloc(struct sim_data *sim, const char *file)
 	my_read( , "/meas_ph/X_avg",    num_h5t, sim->m_ph.X_avg);
 	my_read( , "/meas_ph/X_avg_sq", num_h5t, sim->m_ph.X_avg_sq);
 	my_read( , "/meas_ph/X_sq_avg", num_h5t, sim->m_ph.X_sq_avg);
+	my_read( , "/meas_ph/X_cubed_avg", num_h5t, sim->m_ph.X_cubed_avg);
 	my_read( , "/meas_ph/V_avg",    num_h5t, sim->m_ph.V_avg);
 	my_read( , "/meas_ph/V_sq_avg", num_h5t, sim->m_ph.V_sq_avg);
 	my_read( , "/meas_ph/PE",       num_h5t, sim->m_ph.PE);
@@ -348,6 +351,7 @@ int sim_data_save(const struct sim_data *sim)
 	my_write("/meas_ph/X_avg",    num_h5t, sim->m_ph.X_avg);
 	my_write("/meas_ph/X_avg_sq", num_h5t, sim->m_ph.X_avg_sq);
 	my_write("/meas_ph/X_sq_avg", num_h5t, sim->m_ph.X_sq_avg);
+	my_write("/meas_ph/X_cubed_avg", num_h5t, sim->m_ph.X_cubed_avg);
 	my_write("/meas_ph/V_avg",    num_h5t, sim->m_ph.V_avg);
 	my_write("/meas_ph/V_sq_avg", num_h5t, sim->m_ph.V_sq_avg);
 	my_write("/meas_ph/PE",       num_h5t, sim->m_ph.PE);
@@ -404,6 +408,7 @@ void sim_data_free(const struct sim_data *sim)
 	my_free(sim->m_ph.X_avg);
 	my_free(sim->m_ph.X_avg_sq);
 	my_free(sim->m_ph.X_sq_avg);
+	my_free(sim->m_ph.X_cubed_avg);
 	my_free(sim->m_ph.V_avg);
 	my_free(sim->m_ph.V_sq_avg);
 	my_free(sim->m_ph.PE);

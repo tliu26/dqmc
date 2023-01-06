@@ -294,6 +294,7 @@ static int dqmc(struct sim_data *sim)
 	const double *const restrict D = sim->php.D;
 	const int *const restrict D_nums_nonzero = sim->php.D_nums_nonzero;
 	const int *const restrict D_nonzero_inds = sim->php.D_nonzero_inds;
+	const double phonon_k = sim->php.phonon_k;
 	const double *const gmat = sim->php.gmat;
 	const int *const restrict num_coupled_to_X = sim->php.num_coupled_to_X;
 	const int *const ind_coupled_to_X = sim->php.ind_coupled_to_X;
@@ -483,6 +484,7 @@ static int dqmc(struct sim_data *sim)
 						  tmpNN1d, tmpN1d, tmpN2d, pvtd,
 						  sim->p.map_i, map_munu,
 						  D, max_D_nums_nonzero, D_nums_nonzero, D_nonzero_inds,
+						  phonon_k,
 						  gmat, n_max, num_coupled_to_X, ind_coupled_to_X,
 						  sim->php.local_box_widths, sim->php.num_local_updates,
 						  sim->php.masses,
@@ -628,7 +630,6 @@ static int dqmc(struct sim_data *sim)
 
 			if (recalc) phase = phaseu*phased;
 
-            // printf("sim->s.sweep = %d, l = %d\n", sim->s.sweep, l);
 			if ((sim->s.sweep >= sim->p.n_sweep_warm) &&
 					(sim->p.period_eqlt > 0) &&
 					(l + 1) % sim->p.period_eqlt == 0) {
@@ -656,7 +657,6 @@ static int dqmc(struct sim_data *sim)
 			}
 		}
 
-        // print_mat_f_colmaj(X, "X0", 2, N, L);
 		profile_begin(blockX_update);
 		shuffle(rng, N, site_order);
 		update_blockX(N, site_order, nd, num_munu, L, F, n_matmul, dt, rng,
@@ -665,7 +665,8 @@ static int dqmc(struct sim_data *sim)
 					  tmpNN1u, tmpNN2u, tmpN1u, tmpN2u, tmpN3u, pvtu, worku,
 					  tmpNN1d, tmpNN2d, tmpN1d, tmpN2d, tmpN3d, pvtd, workd,
 					  lwork, sim->p.map_i, map_munu, D,
-		              max_D_nums_nonzero, D_nums_nonzero, D_nonzero_inds,
+					  max_D_nums_nonzero, D_nums_nonzero, D_nonzero_inds,
+					  phonon_k,
 					  gmat, n_max, num_coupled_to_X, ind_coupled_to_X,
 					  sim->php.block_box_widths, sim->php.num_block_updates,
 					  &sim->m_ph);
@@ -675,19 +676,18 @@ static int dqmc(struct sim_data *sim)
 					  tmpNN1u, tmpNN2u, tmpN1u, tmpN2u, tmpN3u, pvtu, worku,
 					  tmpNN1d, tmpNN2d, tmpN1d, tmpN2d, tmpN3d, pvtd, workd, lwork);
 		profile_end(blockX_update);
-		// print_mat_f_colmaj(X, "X1", 2, N, L);
 
-        // print_mat_f_colmaj(X, "X0", 2, N, L);
 		profile_begin(flipX_update);
 		shuffle(rng, N, site_order);
 		update_flipX(N, site_order, nd, num_munu, L, F, n_matmul,
 		             dt, chem_pot, rng,
-		             X, exp_X, inv_exp_X, exp_lambda, hs, exp_Ku, exp_Kd,
+					 X, exp_X, inv_exp_X, exp_lambda, hs, exp_Ku, exp_Kd,
 					 &logdetu, &logdetd,
 					 tmpNN1u, tmpNN2u, tmpN1u, tmpN2u, tmpN3u, pvtu, worku,
 					 tmpNN1d, tmpNN2d, tmpN1d, tmpN2d, tmpN3d, pvtd, workd,
 					 lwork, sim->p.map_i, map_munu, D,
 					 max_D_nums_nonzero, D_nums_nonzero, D_nonzero_inds,
+					 phonon_k,
 					 gmat, n_max, num_coupled_to_X, ind_coupled_to_X,
 					 sim->php.num_flip_updates, &sim->m_ph);
 		update_time_step_mats(N, L, F, n_matmul, exp_X, inv_exp_X,
@@ -696,7 +696,6 @@ static int dqmc(struct sim_data *sim)
 					 tmpNN1u, tmpNN2u, tmpN1u, tmpN2u, tmpN3u, pvtu, worku,
 					 tmpNN1d, tmpNN2d, tmpN1d, tmpN2d, tmpN3d, pvtd, workd, lwork);
 		profile_end(flipX_update);
-		// print_mat_f_colmaj(X, "X1", 2, N, L);
 
 		if (sim->php.track_phonon_ite > 0) {
 			char path[1024];
