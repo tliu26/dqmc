@@ -76,22 +76,20 @@ def rand_jump(rng):
 ##  unit cell a and orbital 2 of unit cell b, the hopping parameter is 3.456.
 ## 
 def create_1(file_sim=None, file_params=None, overwrite=False, init_rng=None,
-             Nx=4, Ny=4, Norb = 3, mu=-0.3, tpd=1.13, tpp=0.49, Udd=8.5, Upp = 0.0, dpd = 3.24, dt=0.125, L=64,
+             Nx=4, Ny=4, Norb=3, mu=-0.3, tpd=1.13, tpp=0.49,
+             Udd=8.5, Upp = 0.0, dpd = 3.24, dt=0.125, L=64,
              nflux=0,
              K=0.1, Kp=0.0625, Kpp=0.025, phonon_k=0.05, M_Cu=1, M_O=0.25,
              g_Cu=0, g_Ox=0.5, g_Oy=0.5,
              local_box_width_Cu=0.85, local_box_width_Ox=1.85, local_box_width_Oy=1.85,
              num_local_updates=48,
              block_box_width_Cu=2.75, block_box_width_Ox=4, block_box_width_Oy=4,
-             num_block_updates=12,
-             num_flip_updates=12,
-             track_phonon_ite=0,
+             num_block_updates=12, num_flip_updates=12, track_phonon_ite=0,
              n_delay=16, n_matmul=8, n_sweep_warm=200, n_sweep_meas=2000,
              period_eqlt=8, period_uneqlt=0,
              meas_bond_corr=1, meas_energy_corr=0, meas_nematic_corr=0,
-             meas_thermal = 0, meas_2bond_corr=0,
-             trans_sym=1,
-             checkpoint_every=1000):
+             meas_thermal=0, meas_2bond_corr=0,
+             trans_sym=1):
     assert L % n_matmul == 0 and L % period_eqlt == 0
     Ncell = Nx * Ny
     N = Norb * Ncell
@@ -603,7 +601,6 @@ def create_1(file_sim=None, file_params=None, overwrite=False, init_rng=None,
         f["params"]["meas_2bond_corr"] = meas_2bond_corr
         f["params"]["meas_energy_corr"] = meas_energy_corr
         f["params"]["meas_nematic_corr"] = meas_nematic_corr
-        f["params"]["checkpoint_every"] = checkpoint_every
 
         # precalculated stuff
         f["params"]["num_i"] = num_i
