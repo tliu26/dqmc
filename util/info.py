@@ -14,6 +14,9 @@ def info(path):
         for k in ("N", "L", "dt", "n_matmul", "n_delay", "n_sweep_warm",
                   "n_sweep_meas", "period_eqlt", "period_uneqlt"):
             print("{} = {}".format(k, f["params"][k][...]))
+        print("\n### Phonon parameters ###")
+        for k, v in f["phonon_metadata"].items():
+            print("{} = {}".format(k, v[...]))
         for k in ("local_box_widths", "num_local_updates",
                   "block_box_widths", "num_block_updates",
                   "num_flip_updates", "ph_masses"):

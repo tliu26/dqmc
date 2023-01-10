@@ -520,7 +520,8 @@ def create_1(file_sim=None, file_params=None, overwrite=False, init_rng=None,
         f.create_group("metadata")
         f["metadata"]["version"] = 0.1
         f["metadata"]["model"] = \
-            "Hubbard (complex)" if dtype_num == np.complex128 else "Hubbard"
+            "Three-band Hubbard-Holstein (complex)" if dtype_num == np.complex128 \
+                else "Three-band Hubbard-Holstein"
         f["metadata"]["Nx"] = Nx
         f["metadata"]["Ny"] = Ny
         f["metadata"]["Norb"] = Norb
@@ -534,14 +535,16 @@ def create_1(file_sim=None, file_params=None, overwrite=False, init_rng=None,
         f["metadata"]["nflux"] = nflux
         f["metadata"]["mu"] = mu
         f["metadata"]["beta"] = L*dt
-        f["metadata"]["K"] = K
-        f["metadata"]["Kp"] = Kp
-        f["metadata"]["Kpp"] = Kpp
-        f["metadata"]["M_Cu"] = M_Cu
-        f["metadata"]["M_O"] = M_O
-        f["metadata"]["g_Cu"] = g_Cu
-        f["metadata"]["g_Ox"] = g_Ox
-        f["metadata"]["g_Oy"] = g_Oy
+        f.create_group("phonon_metadata")
+        f["phonon_metadata"]["K"] = K
+        f["phonon_metadata"]["Kp"] = Kp
+        f["phonon_metadata"]["Kpp"] = Kpp
+        f["phonon_metadata"]["k"] = phonon_k
+        f["phonon_metadata"]["M_Cu"] = M_Cu
+        f["phonon_metadata"]["M_O"] = M_O
+        f["phonon_metadata"]["g_Cu"] = g_Cu
+        f["phonon_metadata"]["g_Ox"] = g_Ox
+        f["phonon_metadata"]["g_Oy"] = g_Oy
 
         # parameters used by dqmc code
         f.create_group("params")
@@ -639,6 +642,7 @@ def create_1(file_sim=None, file_params=None, overwrite=False, init_rng=None,
         f["params_file"] = params_relpath
         if not one_file:
             f["metadata"] = h5py.ExternalLink(params_relpath, "metadata")
+            f["phonon_metadata"] = h5py.ExternalLink(params_relpath, "phonon_metadata")
             f["params"] = h5py.ExternalLink(params_relpath, "params")
 
         f.create_group("state")
