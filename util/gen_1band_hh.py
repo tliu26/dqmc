@@ -305,6 +305,9 @@ def create_1(file_sim=None, file_params=None, overwrite=False, init_rng=None,
                     D_nonzero_inds[i, munu, jj] = j
                     jj += 1
 
+    # Quartic potential: \sum_{mu,i} k_{mu,i} X_{mu,i}^4
+    ks = np.array([phonon_k] * num_i * nd, dtype=np.float64)
+
     # Holstein electron-phonon interaction
     # H_ep = \sum_sigma \sum_{m,i,j} g_{m,i,j} X_{m,i} n_{j,\sigma} where
     # g_{m,i,j} = gmat[m, i, j]
@@ -395,7 +398,7 @@ def create_1(file_sim=None, file_params=None, overwrite=False, init_rng=None,
         f["params"]["D_nums_nonzero"] = D_nums_nonzero
         f["params"]["max_D_nums_nonzero"] = np.array(max_D_nums_nonzero, dtype=np.int32)
         f["params"]["D_nonzero_inds"] = D_nonzero_inds
-        f["params"]["phonon_k"] = np.array(phonon_k, dtype=np.float64)
+        f["params"]["ks"] = ks
         f["params"]["gmat"] = gmat
         f["params"]["max_num_coupled_to_X"] = np.array(num_coupled_to_X.max(), dtype=np.int32)
         f["params"]["num_coupled_to_X"] = num_coupled_to_X

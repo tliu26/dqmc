@@ -29,7 +29,7 @@ struct params {
 struct phonon_params {
 	int nd, num_munu;
 	double *D;
-	double phonon_k;
+	double *ks;
 	int max_D_nums_nonzero;
 	int *D_nums_nonzero;
 	int *D_nonzero_inds;

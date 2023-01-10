@@ -182,7 +182,8 @@ void update_sherman_morrison(const int N, const int i, const double del,
 }
 
 void update_localX(const int N, const int *const restrict site_order,
-        const int nd, const int num_munu, const int l, const int L,
+        const int nd, const int num_munu, const int num_i,
+		const int l, const int L,
         const double dt, const double inv_dt_sq, uint64_t *const restrict rng,
 		double *const restrict X,
 		double *const restrict exp_X, double *const restrict inv_exp_X,
@@ -195,7 +196,7 @@ void update_localX(const int N, const int *const restrict site_order,
 		const double *const restrict D, const int max_D_nums_nonzero,
 		const int *const restrict D_nums_nonzero,
 		const int *const restrict D_nonzero_inds,
-		const double phonon_k,
+		const double *const restrict ks,
 		const double *const gmat, const int n_max,
 		const int *const restrict num_coupled_to_X,
 		const int *const ind_coupled_to_X,
@@ -241,8 +242,8 @@ void update_localX(const int N, const int *const restrict site_order,
 					             * (2 * X[j + (nu + l*nd) * N] + (mu == nu && i == j) * dXmu);
 				}
 			}
-            dEph += phonon_k * (qed(X[i + (mu + l*nd) * N] + dXmu) -
-                                qed(X[i + (mu + l*nd) * N]));
+            dEph += ks[map_i[i] + mu*num_i] *
+			        (qed(X[i + (mu + l*nd) * N] + dXmu) - qed(X[i + (mu + l*nd) * N]));
 			// el-ph interaction
 			const double *const gm = gmat + (i + mu * N) * N;
 			for (int jj = 0; jj < n; jj++) {
@@ -326,7 +327,8 @@ void update_localX(const int N, const int *const restrict site_order,
 }
 
 void update_blockX(const int N, const int *const restrict site_order,
-        const int nd, const int num_munu, const int L, const int F, const int n_matmul,
+        const int nd, const int num_munu, const int num_i,
+		const int L, const int F, const int n_matmul,
 		const double dt, uint64_t *const restrict rng,
 		double *const restrict X, double *const restrict exp_X, double *const restrict inv_exp_X,
 		const double *const restrict exp_lambda, const int *const restrict hs,
@@ -341,7 +343,7 @@ void update_blockX(const int N, const int *const restrict site_order,
 		const int *const restrict map_i, const int *const restrict map_munu,
 		const double *const restrict D, const int max_D_nums_nonzero,
 		const int *const restrict D_nums_nonzero, const int *const restrict D_nonzero_inds,
-		const double phonon_k,
+		const double *const restrict ks,
 		const double *const gmat, const int n_max,
 		const int *const restrict num_coupled_to_X,
 		const int *const ind_coupled_to_X,
@@ -381,8 +383,8 @@ void update_blockX(const int N, const int *const restrict site_order,
 				}
 			}
 			for (int l = 0; l < L; l++)
-			    dEph += phonon_k * (qed(X[i + (mu + l*nd) * N] + dXmu) -
-				                    qed(X[i + (mu + l*nd) * N]));
+			    dEph += ks[map_i[i] + mu*num_i] *
+				        (qed(X[i + (mu + l*nd) * N] + dXmu) - qed(X[i + (mu + l*nd) * N]));
 			// el-ph coupling
 			const double *const gm = gmat + (i + mu * N) * N;
 			for (int jj = 0; jj < n; jj++) {
@@ -471,7 +473,8 @@ void update_blockX(const int N, const int *const restrict site_order,
 }
 
 void update_flipX(const int N, const int *const restrict site_order,
-        const int nd, const int num_munu, const int L, const int F, const int n_matmul,
+        const int nd, const int num_munu, const int num_i,
+		const int L, const int F, const int n_matmul,
 		const double dt, const double chem_pot, uint64_t *const restrict rng,
 		double *const restrict X, double *const restrict exp_X, double *const restrict inv_exp_X,
 		const double *const restrict exp_lambda, const int *const restrict hs,
@@ -487,7 +490,7 @@ void update_flipX(const int N, const int *const restrict site_order,
 		const double *const restrict D, const int max_D_nums_nonzero,
 		const int *const restrict D_nums_nonzero,
 		const int *const restrict D_nonzero_inds,
-		const double phonon_k,
+		const double *const restrict ks,
 		const double *const gmat, const int n_max,
 		const int *const restrict num_coupled_to_X,
 		const int *const ind_coupled_to_X,
@@ -530,8 +533,8 @@ void update_flipX(const int N, const int *const restrict site_order,
 						              * (2 * X[j + (nu + l*nd) * N] + (mu == nu && i == j) * dXmul);
 					}
 				}
-			    dEph += phonon_k * (qed(X[i + (mu + l*nd) * N] + dXmul) -
-                                    qed(X[i + (mu + l*nd) * N]));
+			    dEph += ks[map_i[i] + mu*num_i] *
+				        (qed(X[i + (mu + l*nd) * N] + dXmul) - qed(X[i + (mu + l*nd) * N]));
 				// el-ph coupling
 				for (int jj = 0; jj < n; jj++) {
 					int j = js[jj];

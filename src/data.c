@@ -48,7 +48,6 @@ int sim_data_read_alloc(struct sim_data *sim, const char *file)
 	my_read(_int, "/params/meas_bond_corr", &sim->p.meas_bond_corr);
 	my_read(_int, "/params/meas_energy_corr", &sim->p.meas_energy_corr);
 	my_read(_int, "/params/meas_nematic_corr", &sim->p.meas_nematic_corr);
-	my_read(_double, "/params/phonon_k", &sim->php.phonon_k);
 	my_read(_int, "/params/nd", &sim->php.nd);
 	my_read(_int, "/params/num_munu", &sim->php.num_munu);
 	my_read(_int, "/params/max_D_nums_nonzero", &sim->php.max_D_nums_nonzero);
@@ -93,6 +92,7 @@ int sim_data_read_alloc(struct sim_data *sim, const char *file)
 	sim->php.D             = my_calloc(num_munu * N * N * sizeof(double));
 	sim->php.D_nums_nonzero = my_calloc(num_munu * N * sizeof(int));
 	sim->php.D_nonzero_inds = my_calloc(num_munu * N * max_D_nums_nonzero * sizeof(int));
+	sim->php.ks             = my_calloc(nd * num_i * sizeof(double));
 	sim->php.local_box_widths = my_calloc(num_i * sizeof(double));
 	sim->php.block_box_widths = my_calloc(num_i * sizeof(double));
 	sim->php.masses = my_calloc(num_i * sizeof(double));
@@ -192,6 +192,7 @@ int sim_data_read_alloc(struct sim_data *sim, const char *file)
 	my_read(_int, "/params/map_munu",            sim->php.map_munu);
 	my_read(_int, "/params/D_nums_nonzero",      sim->php.D_nums_nonzero);
 	my_read(_int, "/params/D_nonzero_inds",      sim->php.D_nonzero_inds);
+	my_read(_double, "/params/ks",               sim->php.ks);
 	my_read(_double, "/params/local_box_widths", sim->php.local_box_widths);
 	my_read(_double, "/params/block_box_widths", sim->php.block_box_widths);
 	my_read(_double, "/params/ph_masses", sim->php.masses);
@@ -431,6 +432,7 @@ void sim_data_free(const struct sim_data *sim)
 	my_free(sim->php.map_munu);
 	my_free(sim->php.D_nums_nonzero);
 	my_free(sim->php.D_nonzero_inds);
+	my_free(sim->php.ks);
 	my_free(sim->php.local_box_widths);
 	my_free(sim->php.block_box_widths);
 	my_free(sim->php.masses);

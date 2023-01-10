@@ -291,10 +291,12 @@ static int dqmc(struct sim_data *sim)
 	const int n_max = sim->php.max_num_coupled_to_X;
 	const int nd = sim->php.nd;
 	const int num_munu = sim->php.num_munu;
+	const int num_i = sim->p.num_i;
+	const int *const map_i = sim->p.map_i;
 	const double *const restrict D = sim->php.D;
 	const int *const restrict D_nums_nonzero = sim->php.D_nums_nonzero;
 	const int *const restrict D_nonzero_inds = sim->php.D_nonzero_inds;
-	const double phonon_k = sim->php.phonon_k;
+	const double *const restrict ks = sim->php.ks;
 	const double *const gmat = sim->php.gmat;
 	const int *const restrict num_coupled_to_X = sim->php.num_coupled_to_X;
 	const int *const ind_coupled_to_X = sim->php.ind_coupled_to_X;
@@ -478,13 +480,14 @@ static int dqmc(struct sim_data *sim)
 			// 	print_mat_f_rowmaj(X, "X0", 2, L, N);
 			// 	print_mat_f_rowmaj(gu, "gu", 2, N, N);
 			// }
-			update_localX(N, site_order, nd, num_munu, l, L, dt, inv_dt_sq, rng,
+			update_localX(N, site_order, nd, num_munu, num_i,
+			              l, L, dt, inv_dt_sq, rng,
 			              X, exp_X, inv_exp_X, gu, gd, &phase,
 						  tmpNN1u, tmpN1u, tmpN2u, pvtu,
 						  tmpNN1d, tmpN1d, tmpN2d, pvtd,
-						  sim->p.map_i, map_munu,
+						  map_i, map_munu,
 						  D, max_D_nums_nonzero, D_nums_nonzero, D_nonzero_inds,
-						  phonon_k,
+						  ks,
 						  gmat, n_max, num_coupled_to_X, ind_coupled_to_X,
 						  sim->php.local_box_widths, sim->php.num_local_updates,
 						  sim->php.masses,
@@ -659,14 +662,15 @@ static int dqmc(struct sim_data *sim)
 
 		profile_begin(blockX_update);
 		shuffle(rng, N, site_order);
-		update_blockX(N, site_order, nd, num_munu, L, F, n_matmul, dt, rng,
+		update_blockX(N, site_order, nd, num_munu, num_i,
+		              L, F, n_matmul, dt, rng,
 		              X, exp_X, inv_exp_X, exp_lambda, hs, exp_Ku, exp_Kd,
 					  &logdetu, &logdetd,
 					  tmpNN1u, tmpNN2u, tmpN1u, tmpN2u, tmpN3u, pvtu, worku,
 					  tmpNN1d, tmpNN2d, tmpN1d, tmpN2d, tmpN3d, pvtd, workd,
-					  lwork, sim->p.map_i, map_munu, D,
+					  lwork, map_i, map_munu, D,
 					  max_D_nums_nonzero, D_nums_nonzero, D_nonzero_inds,
-					  phonon_k,
+					  ks,
 					  gmat, n_max, num_coupled_to_X, ind_coupled_to_X,
 					  sim->php.block_box_widths, sim->php.num_block_updates,
 					  &sim->m_ph);
@@ -679,15 +683,15 @@ static int dqmc(struct sim_data *sim)
 
 		profile_begin(flipX_update);
 		shuffle(rng, N, site_order);
-		update_flipX(N, site_order, nd, num_munu, L, F, n_matmul,
+		update_flipX(N, site_order, nd, num_munu, num_i, L, F, n_matmul,
 		             dt, chem_pot, rng,
 					 X, exp_X, inv_exp_X, exp_lambda, hs, exp_Ku, exp_Kd,
 					 &logdetu, &logdetd,
 					 tmpNN1u, tmpNN2u, tmpN1u, tmpN2u, tmpN3u, pvtu, worku,
 					 tmpNN1d, tmpNN2d, tmpN1d, tmpN2d, tmpN3d, pvtd, workd,
-					 lwork, sim->p.map_i, map_munu, D,
+					 lwork, map_i, map_munu, D,
 					 max_D_nums_nonzero, D_nums_nonzero, D_nonzero_inds,
-					 phonon_k,
+					 ks,
 					 gmat, n_max, num_coupled_to_X, ind_coupled_to_X,
 					 sim->php.num_flip_updates, &sim->m_ph);
 		update_time_step_mats(N, L, F, n_matmul, exp_X, inv_exp_X,

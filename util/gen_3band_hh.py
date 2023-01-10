@@ -79,7 +79,8 @@ def create_1(file_sim=None, file_params=None, overwrite=False, init_rng=None,
              Nx=4, Ny=4, Norb=3, mu=-0.3, tpd=1.13, tpp=0.49,
              Udd=8.5, Upp = 0.0, dpd = 3.24, dt=0.125, L=64,
              nflux=0,
-             K=0.1, Kp=0.0625, Kpp=0.025, phonon_k=0.05, M_Cu=1, M_O=0.25,
+             K=0.1, Kp=0.0625, Kpp=0.025, k_Cu=0.05, k_Ox=0.05, k_Oy=0.05,
+             M_Cu=1, M_O=0.25,
              g_Cu=0, g_Ox=0.5, g_Oy=0.5,
              local_box_width_Cu=0.85, local_box_width_Ox=1.85, local_box_width_Oy=1.85,
              num_local_updates=48,
@@ -485,6 +486,12 @@ def create_1(file_sim=None, file_params=None, overwrite=False, init_rng=None,
                     D_nonzero_inds[i, munu, jj] = j
                     jj += 1
 
+    # Quartic potential: \sum_{mu,i,o} k_{mu,i,o} X_{mu,i,o}^4
+    if trans_sym:
+        ks = np.array([k_Cu, k_Ox, k_Oy] * nd, dtype=np.float64)
+    else:
+        ks = np.array([k_Cu, k_Ox, k_Oy] * Ncell * nd, dtype=np.float64)
+
     # Holstein electron-phonon interaction
     # H_ep = \sum_sigma \sum_{m,i,j} g_{m,i,j} X_{m,i} n_{j,\sigma} where
     # g_{m,i,j} = gmat[m, i, j]
@@ -539,7 +546,9 @@ def create_1(file_sim=None, file_params=None, overwrite=False, init_rng=None,
         f["phonon_metadata"]["K"] = K
         f["phonon_metadata"]["Kp"] = Kp
         f["phonon_metadata"]["Kpp"] = Kpp
-        f["phonon_metadata"]["k"] = phonon_k
+        f["phonon_metadata"]["k_Cu"] = k_Cu
+        f["phonon_metadata"]["k_Ox"] = k_Ox
+        f["phonon_metadata"]["k_Oy"] = k_Oy
         f["phonon_metadata"]["M_Cu"] = M_Cu
         f["phonon_metadata"]["M_O"] = M_O
         f["phonon_metadata"]["g_Cu"] = g_Cu
@@ -579,7 +588,7 @@ def create_1(file_sim=None, file_params=None, overwrite=False, init_rng=None,
         f["params"]["D_nums_nonzero"] = D_nums_nonzero
         f["params"]["max_D_nums_nonzero"] = np.array(max_D_nums_nonzero, dtype=np.int32)
         f["params"]["D_nonzero_inds"] = D_nonzero_inds
-        f["params"]["phonon_k"] = np.array(phonon_k, dtype=np.float64)
+        f["params"]["ks"] = ks
         f["params"]["gmat"] = gmat
         f["params"]["max_num_coupled_to_X"] = np.array(num_coupled_to_X.max(), dtype=np.int32)
         f["params"]["num_coupled_to_X"] = num_coupled_to_X
