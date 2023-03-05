@@ -660,7 +660,6 @@ static int dqmc(struct sim_data *sim)
 			}
 		}
 
-		profile_begin(blockX_update);
 		shuffle(rng, N, site_order);
 		update_blockX(N, site_order, nd, num_munu, num_i,
 		              L, F, n_matmul, dt, rng,
@@ -679,9 +678,6 @@ static int dqmc(struct sim_data *sim)
 					  Bu, iBu, gu, Bd, iBd, gd, Cu, Cd, &phase,
 					  tmpNN1u, tmpNN2u, tmpN1u, tmpN2u, tmpN3u, pvtu, worku,
 					  tmpNN1d, tmpNN2d, tmpN1d, tmpN2d, tmpN3d, pvtd, workd, lwork);
-		profile_end(blockX_update);
-
-		profile_begin(flipX_update);
 		shuffle(rng, N, site_order);
 		update_flipX(N, site_order, nd, num_munu, num_i, L, F, n_matmul,
 		             dt, chem_pot, rng,
@@ -699,8 +695,6 @@ static int dqmc(struct sim_data *sim)
 					 Bu, iBu, gu, Bd, iBd, gd, Cu, Cd, &phase,
 					 tmpNN1u, tmpNN2u, tmpN1u, tmpN2u, tmpN3u, pvtu, worku,
 					 tmpNN1d, tmpNN2d, tmpN1d, tmpN2d, tmpN3d, pvtd, workd, lwork);
-		profile_end(flipX_update);
-
 		if (sim->php.track_phonon_ite > 0) {
 			char path[1024];
 			for (int mu = 0; mu < nd; mu++) {

@@ -19,7 +19,8 @@ def info(path):
             print("{} = {}".format(k, v[...]))
         for k in ("local_box_widths", "num_local_updates",
                   "block_box_widths", "num_block_updates",
-                  "num_flip_updates", "ph_masses"):
+                  "num_flip_updates", "ph_masses",
+                  "track_phonon_ite"):
             print("{} = {}".format(k, f["params"][k][...]))
 
 

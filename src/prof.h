@@ -19,8 +19,19 @@
 	X(expand_g) \
 	X(meas_uneq) \
 	X(localX_update) \
+	X(blockX_get_ene) \
+	X(blockX_calcb) \
+	X(blockX_multb) \
+	X(blockX_recalc) \
 	X(blockX_update) \
+	X(flipX_get_ene) \
+	X(flipX_calcb) \
+	X(flipX_multb) \
+	X(flipX_recalc) \
 	X(flipX_update) \
+	X(utsm_calcb) \
+	X(utsm_multb) \
+	X(utsm_recalc) \
 	X(meas_phonon)
 
 #define X(a) __profile_##a,

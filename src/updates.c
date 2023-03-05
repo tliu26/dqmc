@@ -4,6 +4,7 @@
 #include "rand.h"
 #include "util.h"
 #include "greens.h"
+#include "prof.h"
 #include <stdio.h>
 #include <stdarg.h>
 
@@ -364,6 +365,7 @@ void update_blockX(const int N, const int *const restrict site_order,
 	int infou, infod;
 
 	for (int ii = 0; ii < num_block_updates; ii++) {
+		profile_begin(blockX_get_ene);
 		const int i = site_order[ii];
 		double dEph = 0;
 		const int n = num_coupled_to_X[i];
@@ -393,35 +395,48 @@ void update_blockX(const int N, const int *const restrict site_order,
 					tmp_exp_X[j + l*N] *= exp(-dt * gm[j] * dXmu);
 			}
 		}
+		profile_end(blockX_get_ene);
 		logdetu_p = 0;
 		logdetd_p = 0;
 		#pragma omp parallel sections
 		{
 		#pragma omp section
 		{
+		profile_begin(blockX_calcb);
 		for (int l = 0; l < L; l++)
 			calcPBu(tmp_Bu + N*N*l, l, N, exp_lambda, hs, tmp_exp_X, exp_Ku);
+		profile_end(blockX_calcb);
+		profile_begin(blockX_multb);
 		for (int f = 0; f < F; f++)
 			mul_seq(N, L, f*n_matmul, ((f + 1)*n_matmul) % L, 1.0,
 					tmp_Bu, tmp_Cu + N*N*f, N, tmpNN1u);
+		profile_end(blockX_multb);
+		profile_begin(blockX_recalc);
 		phaseu_p = calc_eq_g(0, N, F, N_MUL, tmp_Cu, tmp_gu,
 		                     tmpNN1u, tmpNN2u, tmpN1u, tmpN2u,
 							 tmpN3u, pvtu, worku, lwork);
 		for (int i = 0; i < N; i++)
 			logdetu_p += log(fabs(tmpN3u[i])) - log(fabs(tmpNN2u[i + i*N]));
+		profile_end(blockX_recalc);
 		}
 		#pragma omp section
 		{
+		profile_begin(blockX_calcb);
 		for (int l = 0; l < L; l++)
 			calcPBd(tmp_Bd + N*N*l, l, N, exp_lambda, hs, tmp_exp_X, exp_Kd);
+		profile_end(blockX_calcb);
+		profile_begin(blockX_multb);
 		for (int f = 0; f < F; f++)
 			mul_seq(N, L, f*n_matmul, ((f + 1)*n_matmul) % L, 1.0,
 					tmp_Bd, tmp_Cd + N*N*f, N, tmpNN1d);
+		profile_end(blockX_multb);
+		profile_begin(blockX_recalc);
 		phased_p = calc_eq_g(0, N, F, N_MUL, tmp_Cd, tmp_gd,
 		                     tmpNN1d, tmpNN2d, tmpN1d, tmpN2d,
 							 tmpN3d, pvtd, workd, lwork);
 		for (int i = 0; i < N; i++)
 			logdetd_p += log(fabs(tmpN3d[i])) - log(fabs(tmpNN2d[i + i*N]));
+		profile_end(blockX_recalc);
 		}
 		}
 
@@ -438,6 +453,7 @@ void update_blockX(const int N, const int *const restrict site_order,
 		// 	logdetd_plu += log(fabs(tmp_gd[i + i * N]));
 		// printf("logdetd_plu = %.18G\n", logdetd_plu);
 
+        profile_begin(blockX_update);
 		m->n_block_total[map_i[i]]++;
 		if (rand_doub(rng) < exp((*logdetu + *logdetd) - (logdetu_p + logdetd_p) - dt * dEph)) {
 			m->n_block_accept[map_i[i]]++;
@@ -461,6 +477,7 @@ void update_blockX(const int N, const int *const restrict site_order,
 			// printf("dXmu = %.12f\n", dX[0]);
 			// printf("dEph = %.12f\n", dEph);
 		}
+		profile_end(blockX_update);
 	}
 	my_free(dX);
 	my_free(tmp_exp_X);
@@ -510,6 +527,7 @@ void update_flipX(const int N, const int *const restrict site_order,
 	int infou, infod;
 
 	for (int ii = 0; ii < num_flip_updates; ii++) {
+		profile_begin(flipX_get_ene);
 		const int i = site_order[ii];
 		double dEph = 0;
 		const int n = num_coupled_to_X[i];
@@ -542,37 +560,51 @@ void update_flipX(const int N, const int *const restrict site_order,
 				}
 			}
 		}
+		profile_end(flipX_get_ene);
 		logdetu_p = 0;
 		logdetd_p = 0;
 		#pragma omp parallel sections
 		{
 		#pragma omp section
 		{
+		profile_begin(flipX_calcb);
 		for (int l = 0; l < L; l++)
 			calcPBu(tmp_Bu + N*N*l, l, N, exp_lambda, hs, tmp_exp_X, exp_Ku);
+		profile_end(flipX_calcb);
+		profile_begin(flipX_multb);
 		for (int f = 0; f < F; f++)
 			mul_seq(N, L, f*n_matmul, ((f + 1)*n_matmul) % L, 1.0,
 					tmp_Bu, tmp_Cu + N*N*f, N, tmpNN1u);
+		profile_end(flipX_multb);
+		profile_begin(flipX_recalc);
 		phaseu_p = calc_eq_g(0, N, F, N_MUL, tmp_Cu, tmp_gu,
 		                     tmpNN1u, tmpNN2u, tmpN1u, tmpN2u,
 							 tmpN3u, pvtu, worku, lwork);
 		for (int i = 0; i < N; i++)
 			logdetu_p += log(fabs(tmpN3u[i])) - log(fabs(tmpNN2u[i + i*N]));
+		profile_end(flipX_recalc);
 		}
 		#pragma omp section
 		{
+		profile_begin(flipX_calcb);
 		for (int l = 0; l < L; l++)
 			calcPBd(tmp_Bd + N*N*l, l, N, exp_lambda, hs, tmp_exp_X, exp_Kd);
+		profile_end(flipX_calcb);
+		profile_begin(flipX_multb);
 		for (int f = 0; f < F; f++)
 			mul_seq(N, L, f*n_matmul, ((f + 1)*n_matmul) % L, 1.0,
 					tmp_Bd, tmp_Cd + N*N*f, N, tmpNN1d);
+		profile_end(flipX_multb);
+		profile_begin(flipX_recalc);
 		phased_p = calc_eq_g(0, N, F, N_MUL, tmp_Cd, tmp_gd,
 		                     tmpNN1d, tmpNN2d, tmpN1d, tmpN2d,
 							 tmpN3d, pvtd, workd, lwork);
 		for (int i = 0; i < N; i++)
 			logdetd_p += log(fabs(tmpN3d[i])) - log(fabs(tmpNN2d[i + i*N]));
+		profile_end(flipX_recalc);
 		}
 		}
+		profile_begin(flipX_update);
 		m->n_flip_total[map_i[i]]++;
 		if (rand_doub(rng) < exp((*logdetu + *logdetd) - (logdetu_p + logdetd_p) - dt * dEph)) {
 			m->n_flip_accept[map_i[i]]++;
@@ -590,6 +622,7 @@ void update_flipX(const int N, const int *const restrict site_order,
 			// printf("i = %d\n", i);
 			// printf("dEph = %.12f\n", dEph);
 		}
+		profile_end(flipX_update);
 	}
 	my_free(tmp_exp_X);
 	my_free(tmp_Bu);
@@ -621,29 +654,41 @@ void update_time_step_mats(const int N, const int L, const int F, const int n_ma
 	{
 	#pragma omp section
 	{
+	profile_begin(utsm_calcb);
 	for (int l = 0; l < L; l++) {
 		calcPBu(Bu + N*N*l, l, N, exp_lambda, hs, exp_X, exp_Ku);
 		calcPiBu(iBu + N*N*l, l, N, exp_lambda, hs, inv_exp_X, inv_exp_Ku);
 	}
+	profile_end(utsm_calcb);
+	profile_begin(utsm_multb);
 	for (int f = 0; f < F; f++)
 		mul_seq(N, L, f*n_matmul, ((f + 1)*n_matmul) % L, 1.0,
 		        Bu, Cu + N*N*f, N, tmpNN1u);
+	profile_end(utsm_multb);
+	profile_begin(utsm_recalc);
 	phaseu = calc_eq_g(0, N, F, N_MUL, Cu, gu,
 	                   tmpNN1u, tmpNN2u, tmpN1u, tmpN2u,
 					   tmpN3u, pvtu, worku, lwork);
+	profile_end(utsm_recalc);
 	}
 	#pragma omp section
 	{
+	profile_begin(utsm_calcb);
 	for (int l = 0; l < L; l++) {
 		calcPBd(Bd + N*N*l, l, N, exp_lambda, hs, exp_X, exp_Kd);
 		calcPiBd(iBd + N*N*l, l, N, exp_lambda, hs, inv_exp_X, inv_exp_Kd);
 	}
+	profile_end(utsm_calcb);
+	profile_begin(utsm_multb);
 	for (int f = 0; f < F; f++)
 		mul_seq(N, L, f*n_matmul, ((f + 1)*n_matmul) % L, 1.0,
 		        Bd, Cd + N*N*f, N, tmpNN1d);
+	profile_end(utsm_multb);
+	profile_begin(utsm_recalc);
 	phased = calc_eq_g(0, N, F, N_MUL, Cd, gd,
 	                   tmpNN1d, tmpNN2d, tmpN1d, tmpN2d,
 					   tmpN3d, pvtd, workd, lwork);
+	profile_end(utsm_recalc);
 	}
 	}
 	*phase = phaseu*phased;

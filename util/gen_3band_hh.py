@@ -77,7 +77,7 @@ def rand_jump(rng):
 ## 
 def create_1(file_sim=None, file_params=None, overwrite=False, init_rng=None,
              Nx=4, Ny=4, Norb=3, mu=-0.3, tpd=1.13, tpp=0.49,
-             Udd=8.5, Upp = 0.0, dpd = 3.24, dt=0.125, L=64,
+             Udd=8.5, Upp=0.0, dpd=3.24, dt=0.125, L=64,
              nflux=0,
              K=0.1, Kp=0.0625, Kpp=0.025, k_Cu=0.05, k_Ox=0.05, k_Oy=0.05,
              M_Cu=1, M_O=0.25,
