@@ -72,6 +72,7 @@ struct meas_uneqlt {
 	int n_sample;
 	num sign;
 
+	num *density;
 	num *gt0;
 	num *nn;
 	num *xx;
@@ -95,6 +96,7 @@ struct meas_ph {
 	num sign;
 
 	num *X_avg;
+	num *X_t_avg;
 	num *X_avg_sq;
 	num *X_sq_avg;
 	num *X_cubed_avg;

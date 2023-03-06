@@ -118,6 +118,7 @@ int sim_data_read_alloc(struct sim_data *sim, const char *file)
 		sim->m_eq.vn = my_calloc(num_ij * sizeof(num));
 	}
 	if (sim->p.period_uneqlt > 0) {
+		sim->m_ue.density = my_calloc(num_i*L  * sizeof(num));
 		sim->m_ue.gt0     = my_calloc(num_ij*L * sizeof(num));
 		sim->m_ue.nn      = my_calloc(num_ij*L * sizeof(num));
 		sim->m_ue.xx      = my_calloc(num_ij*L * sizeof(num));
@@ -142,6 +143,7 @@ int sim_data_read_alloc(struct sim_data *sim, const char *file)
 		}
 	}
 	sim->m_ph.X_avg = my_calloc(nd*num_i * sizeof(num));
+	sim->m_ph.X_t_avg = my_calloc(nd*num_i*L * sizeof(num));
 	sim->m_ph.X_avg_sq = my_calloc(nd*num_i * sizeof(num));
 	sim->m_ph.X_sq_avg = my_calloc(nd*num_i * sizeof(num));
 	sim->m_ph.X_cubed_avg = my_calloc(nd*num_i * sizeof(num));
@@ -226,6 +228,7 @@ int sim_data_read_alloc(struct sim_data *sim, const char *file)
 	if (sim->p.period_uneqlt > 0) {
 		my_read(_int,    "/meas_uneqlt/n_sample", &sim->m_ue.n_sample);
 		my_read( , "/meas_uneqlt/sign",      num_h5t, &sim->m_ue.sign);
+		my_read( , "/meas_uneqlt/density",   num_h5t, sim->m_ue.density);
 		my_read( , "/meas_uneqlt/gt0",       num_h5t, sim->m_ue.gt0);
 		my_read( , "/meas_uneqlt/nn",        num_h5t, sim->m_ue.nn);
 		my_read( , "/meas_uneqlt/xx",        num_h5t, sim->m_ue.xx);
@@ -259,6 +262,7 @@ int sim_data_read_alloc(struct sim_data *sim, const char *file)
 	my_read( , "/meas_ph/sign",        num_h5t, &sim->m_ph.sign);
 
 	my_read( , "/meas_ph/X_avg",    num_h5t, sim->m_ph.X_avg);
+	my_read( , "/meas_ph/X_t_avg",  num_h5t, sim->m_ph.X_t_avg);
 	my_read( , "/meas_ph/X_avg_sq", num_h5t, sim->m_ph.X_avg_sq);
 	my_read( , "/meas_ph/X_sq_avg", num_h5t, sim->m_ph.X_sq_avg);
 	my_read( , "/meas_ph/X_cubed_avg", num_h5t, sim->m_ph.X_cubed_avg);
@@ -318,6 +322,7 @@ int sim_data_save(const struct sim_data *sim)
 	if (sim->p.period_uneqlt > 0) {
 		my_write("/meas_uneqlt/n_sample", H5T_NATIVE_INT,    &sim->m_ue.n_sample);
 		my_write("/meas_uneqlt/sign",     num_h5t, &sim->m_ue.sign);
+		my_write("/meas_uneqlt/density",  num_h5t,  sim->m_ue.density);
 		my_write("/meas_uneqlt/gt0",      num_h5t,  sim->m_ue.gt0);
 		my_write("/meas_uneqlt/nn",       num_h5t,  sim->m_ue.nn);
 		my_write("/meas_uneqlt/xx",       num_h5t,  sim->m_ue.xx);
@@ -350,6 +355,7 @@ int sim_data_save(const struct sim_data *sim)
 	my_write("/meas_ph/n_flip_total",  H5T_NATIVE_INT, sim->m_ph.n_flip_total);
 	my_write("/meas_ph/sign",  num_h5t, &sim->m_ph.sign);
 	my_write("/meas_ph/X_avg",    num_h5t, sim->m_ph.X_avg);
+	my_write("/meas_ph/X_t_avg",  num_h5t, sim->m_ph.X_t_avg);
 	my_write("/meas_ph/X_avg_sq", num_h5t, sim->m_ph.X_avg_sq);
 	my_write("/meas_ph/X_sq_avg", num_h5t, sim->m_ph.X_sq_avg);
 	my_write("/meas_ph/X_cubed_avg", num_h5t, sim->m_ph.X_cubed_avg);
@@ -392,6 +398,7 @@ void sim_data_free(const struct sim_data *sim)
 		my_free(sim->m_ue.xx);
 		my_free(sim->m_ue.nn);
 		my_free(sim->m_ue.gt0);
+		my_free(sim->m_ue.density);
 	}
 	if (sim->p.meas_energy_corr) {
 		my_free(sim->m_eq.vn);
@@ -407,6 +414,7 @@ void sim_data_free(const struct sim_data *sim)
 	my_free(sim->m_ph.n_flip_accept);
 	my_free(sim->m_ph.n_flip_total);
 	my_free(sim->m_ph.X_avg);
+	my_free(sim->m_ph.X_t_avg);
 	my_free(sim->m_ph.X_avg_sq);
 	my_free(sim->m_ph.X_sq_avg);
 	my_free(sim->m_ph.X_cubed_avg);

@@ -195,6 +195,15 @@ void measure_uneqlt(const struct params *const restrict p, const num phase,
 	const num *const restrict Gu00 = Gutt;
 	const num *const restrict Gd00 = Gdtt;
 
+	// 1 site measurements
+	for (int t = 0; t < L; t++)
+	for (int i = 0; i < N; i++) {
+		const int r = p->map_i[i];
+		const num pre = phase / p->degen_i[r];
+		const num guii = Gutt[i + N*i + N*N*t], gdii = Gdtt[i + N*i + N*N*t];
+		m->density[r + num_i*t] += pre*(2. - guii - gdii);
+	}
+
 	// 2 site measurements
 	#pragma omp parallel for
 	for (int t = 0; t < L; t++) {
@@ -621,9 +630,11 @@ void measure_ph(const struct params *const restrict p, const num phase,
 	for (int i = 0; i < N; i++) {
 		const int r = p->map_i[i];
 		const double pre = phase / p->degen_i[r] / L;
+		const double pre2 = phase / p->degen_i[r];
 		const double curr_X = X[i + (mu + t*nd) * N];
 		const double next_X = X[i + (mu + ((t + 1) % L) * nd) * N];
 		m->X_avg[r + mu*num_i] += pre * curr_X;
+		m->X_t_avg[r + num_i*(mu + nd*t)] += pre2 * curr_X;
 		// printf("pre = %.12f\n", pre);
 		// printf("curr_X = %.12f\n", curr_X);
 		// printf("m->X_avg[r + mu*num_i] = %.12f\n", m->X_avg[r + mu*num_i]);

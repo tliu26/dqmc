@@ -486,6 +486,7 @@ def create_1(file_sim=None, file_params=None, overwrite=False, init_rng=None,
             f.create_group("meas_uneqlt")
             f["meas_uneqlt"]["n_sample"] = np.array(0, dtype=np.int32)
             f["meas_uneqlt"]["sign"] = np.array(0.0, dtype=dtype_num)
+            f["meas_uneqlt"]["density"] = np.zeros(num_i*L, dtype=dtype_num)
             f["meas_uneqlt"]["gt0"] = np.zeros(num_ij*L, dtype=dtype_num)
             f["meas_uneqlt"]["nn"] = np.zeros(num_ij*L, dtype=dtype_num)
             f["meas_uneqlt"]["xx"] = np.zeros(num_ij*L, dtype=dtype_num)
@@ -516,6 +517,7 @@ def create_1(file_sim=None, file_params=None, overwrite=False, init_rng=None,
         f["meas_ph"]["sign"] = np.array(0.0, dtype=dtype_num)
 
         f["meas_ph"]["X_avg"] = np.zeros(num_i*nd, dtype=dtype_num)
+        f["meas_ph"]["X_t_avg"] = np.zeros(num_i*L*nd, dtype=dtype_num)
         f["meas_ph"]["X_avg_sq"] = np.zeros(num_i*nd, dtype=dtype_num)
         f["meas_ph"]["X_sq_avg"] = np.zeros(num_i*nd, dtype=dtype_num)
         f["meas_ph"]["X_cubed_avg"] = np.zeros(num_i*nd, dtype=dtype_num)
